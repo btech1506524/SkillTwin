@@ -5,13 +5,12 @@ import { DB } from '../data/store.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'skilltwin_jwt_secret_sem5_2026';
 
-// Helper to generate JWT
+// Helper to generate JWT — JWT_SECRET validated at startup in server.js
 function generateToken(user) {
   return jwt.sign(
     { id: user.id, email: user.email, name: user.name, semester: user.semester },
-    JWT_SECRET,
+    process.env.JWT_SECRET, // ERR-042: No hardcoded fallback — secret must be in .env
     { expiresIn: '7d' }
   );
 }
@@ -82,19 +81,22 @@ router.post('/login', async (req, res) => {
     if (!email) {
       return res.status(400).json({ success: false, message: 'Email is required.' });
     }
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password is required.' });
+    }
 
-    let user = DB.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-    // If demo password or mock user
+    // ERR-004 FIX: No more auto-fallback to DB.users[0] for unknown emails.
+    // If email not found, return 401 — unknown users must use /api/auth/demo endpoint.
+    const user = DB.users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (!user) {
-      // Auto-fallback for demo review
-      user = DB.users[0];
-    } else if (password && user.passwordHash) {
-      const isMatch = await bcrypt.compare(password, user.passwordHash).catch(() => true);
-      // Allow demo password fallback
-      if (!isMatch && password !== 'password123') {
-        return res.status(401).json({ success: false, message: 'Invalid credentials provided.' });
-      }
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    }
+
+    // ERR-005 FIX: Proper bcrypt verification only — removed 'password123' magic bypass
+    // and removed .catch(() => true) which was treating bcrypt errors as login success.
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
     const token = generateToken(user);
@@ -111,7 +113,8 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /api/auth/demo
+// POST /api/auth/demo — Dedicated demo/evaluator access endpoint
+// This is the ONLY way to get demo account access without credentials.
 router.post('/demo', (req, res) => {
   const demoStudent = DB.users[0];
   const token = generateToken(demoStudent);
@@ -125,13 +128,12 @@ router.post('/demo', (req, res) => {
   });
 });
 
-// GET /api/auth/me (Get current verified user)
+// GET /api/auth/me — Get currently authenticated user
 router.get('/me', authenticateToken, (req, res) => {
   const user = DB.users.find(u => u.id === req.user.id);
   if (!user) {
     return res.status(404).json({ success: false, message: 'Student profile not found.' });
   }
-
   const { passwordHash: _, ...safeUser } = user;
   return res.json({ success: true, user: safeUser });
 });

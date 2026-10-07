@@ -20,7 +20,8 @@ export default function useInView(options = {}) {
 
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(options)]);
 
   return [ref, isInView];
 }

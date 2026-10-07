@@ -6,27 +6,34 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-
 // ===============================
 // REGISTER
+// ERR-003 FIX: Now accepts 'name' (frontend field) in addition to 'full_name' (legacy field)
+// ERR-025 FIX: Returns JWT token and user object that match frontend expectations
+// ERR-026 FIX: User object fields now match what AuthContext and Dashboard expect
 // ===============================
 router.post("/register", async (req, res) => {
   try {
+    // Accept either 'name' (frontend) or 'full_name' (legacy) — ERR-003
     const {
+      name,
       full_name,
       email,
       password,
       phone,
       college,
       branch,
+      semester,
+      targetRole,
       graduation_year
     } = req.body;
 
-    // Validate required fields
-    if (!full_name || !email || !password) {
+    const studentName = name || full_name;
+
+    if (!studentName || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Full name, email and password are required"
+        message: "Name, email and password are required"
       });
     }
 
@@ -43,16 +50,14 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
-    // Insert user
     const [result] = await db.query(
       `INSERT INTO users
       (full_name, email, password_hash, phone, college, branch, graduation_year)
       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
-        full_name,
+        studentName,
         email,
         password_hash,
         phone || null,
@@ -62,15 +67,40 @@ router.post("/register", async (req, res) => {
       ]
     );
 
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is missing in .env");
+      return res.status(500).json({ success: false, message: "JWT configuration error" });
+    }
+
+    // ERR-025 FIX: Generate and return a JWT token (previously missing)
+    const token = jwt.sign(
+      { user_id: result.insertId, email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // ERR-026 FIX: Return user fields matching frontend expectations
     res.status(201).json({
       success: true,
       message: "Registration successful",
-      user_id: result.insertId
+      token,
+      user: {
+        id: result.insertId,
+        name: studentName,
+        email,
+        semester: semester || "5",
+        branch: branch || "Computer Science & Engineering",
+        targetRole: targetRole || "Software Developer",
+        college: college || "",
+        cgpa: "0.0",
+        readinessScore: 68,
+        skills: {},
+        completedMilestones: []
+      }
     });
 
   } catch (error) {
     console.error("Registration error:", error);
-
     res.status(500).json({
       success: false,
       message: "Server error during registration"
@@ -81,12 +111,12 @@ router.post("/register", async (req, res) => {
 
 // ===============================
 // LOGIN
+// ERR-026 FIX: Response user object now matches frontend field name expectations
 // ===============================
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -94,7 +124,6 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Find user
     const [users] = await db.query(
       "SELECT * FROM users WHERE email = ?",
       [email]
@@ -109,11 +138,7 @@ router.post("/login", async (req, res) => {
 
     const user = users[0];
 
-    // Compare password with bcrypt hash
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      user.password_hash
-    );
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -122,46 +147,40 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Check JWT secret
     if (!process.env.JWT_SECRET) {
       console.error("JWT_SECRET is missing in .env");
-
-      return res.status(500).json({
-        success: false,
-        message: "JWT configuration error"
-      });
+      return res.status(500).json({ success: false, message: "JWT configuration error" });
     }
 
-    // Generate JWT token
     const token = jwt.sign(
-      {
-        user_id: user.user_id,
-        email: user.email
-      },
+      { user_id: user.user_id, email: user.email },
       process.env.JWT_SECRET,
-      {
-        expiresIn: "7d"
-      }
+      { expiresIn: "7d" }
     );
 
-    // Send response
+    // ERR-026 FIX: Return 'id' and 'name' instead of 'user_id' and 'full_name'
+    // so the frontend AuthContext and Dashboard can consume them correctly.
     res.json({
       success: true,
       message: "Login successful",
-      token: token,
+      token,
       user: {
-        user_id: user.user_id,
-        full_name: user.full_name,
+        id: user.user_id,
+        name: user.full_name,
         email: user.email,
-        college: user.college,
-        branch: user.branch,
-        graduation_year: user.graduation_year
+        semester: user.semester || "5",
+        branch: user.branch || "",
+        targetRole: user.target_role || "Software Developer",
+        college: user.college || "",
+        cgpa: user.cgpa || "0.0",
+        readinessScore: user.readiness_score || 68,
+        skills: {},
+        completedMilestones: []
       }
     });
 
   } catch (error) {
     console.error("Login error:", error);
-
     res.status(500).json({
       success: false,
       message: "Server error during login"
@@ -196,7 +215,6 @@ router.get("/profile", authMiddleware, async (req, res) => {
 
   } catch (error) {
     console.error("Profile error:", error);
-
     res.status(500).json({
       success: false,
       message: "Server error"
@@ -208,4 +226,4 @@ router.get("/profile", authMiddleware, async (req, res) => {
 // ===============================
 // EXPORT ROUTER
 // ===============================
-module.exports = router ;
+module.exports = router;

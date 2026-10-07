@@ -9,7 +9,8 @@ export function authenticateToken(req, res, next) {
   }
 
   try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET || 'skilltwin_jwt_secret_sem5_2026');
+    // ERR-042 FIX: No fallback secret — JWT_SECRET is validated at startup in server.js
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
     req.user = verified;
     next();
   } catch (err) {

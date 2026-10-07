@@ -7,7 +7,7 @@ export const DB = {
       id: 'student-sem5-01',
       name: 'Sanjay Kumar',
       email: 'sanjay.cse@student.edu',
-      passwordHash: '$2a$10$wE9m0Y4wE.2qjZ1sY0nOaeR9qJvB.1q6Jz0iX9eA7b1wM0qY1eE2u', // bcrypt for 'password123'
+      passwordHash: '$2a$10$wE9m0Y4wE.2qjZ1sY0nOaeR9qJvB.1q6Jz0iX9eA7b1wM0qY1eE2u',
       semester: '5',
       branch: 'Computer Science & Engineering',
       college: 'National Institute of Technology',

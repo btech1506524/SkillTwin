@@ -37,6 +37,7 @@ export function AuthProvider({ children }) {
     }
   });
 
+  // ERR-020: Sync storage cleanly
   useEffect(() => {
     if (user) {
       localStorage.setItem('skilltwin_user', JSON.stringify(user));
@@ -46,9 +47,11 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
+  // ERR-012 FIX: Distinguish real server rejection from server-offline fallback
   const login = async (email, password) => {
-    // Attempt backend API login
     const apiRes = await apiService.login(email, password);
+    
+    // Success from backend
     if (apiRes && apiRes.success && apiRes.user) {
       if (apiRes.token) {
         localStorage.setItem('skilltwin_token', apiRes.token);
@@ -57,14 +60,19 @@ export function AuthProvider({ children }) {
       return { success: true };
     }
 
-    // Fallback if backend is not running
+    // Backend explicitly returned an error (e.g. 401 Invalid Credentials)
+    if (apiRes && apiRes.success === false) {
+      return { success: false, message: apiRes.message || 'Invalid email or password' };
+    }
+
+    // Fallback ONLY when backend is completely offline (apiRes === null)
     const studentUser = {
       ...DEFAULT_DEMO_STUDENT,
       email: email || DEFAULT_DEMO_STUDENT.email,
-      name: email.split('@')[0].replace('.', ' ') || DEFAULT_DEMO_STUDENT.name
+      name: email ? email.split('@')[0].replace('.', ' ') : DEFAULT_DEMO_STUDENT.name
     };
     setUser(studentUser);
-    return { success: true };
+    return { success: true, offlineFallback: true };
   };
 
   const loginDemo = async () => {
@@ -81,14 +89,28 @@ export function AuthProvider({ children }) {
     return { success: true };
   };
 
+  // ERR-013 FIX: Distinguish server conflict/validation error from offline fallback
   const signup = async ({ name, email, semester, branch, targetRole, password }) => {
-    const apiRes = await apiService.register({ name, email, semester, branch, targetRole, password: password || 'password123' });
+    const apiRes = await apiService.register({
+      name,
+      email,
+      semester,
+      branch,
+      targetRole,
+      password: password || 'password123'
+    });
+
     if (apiRes && apiRes.success && apiRes.user) {
       if (apiRes.token) localStorage.setItem('skilltwin_token', apiRes.token);
       setUser(apiRes.user);
       return { success: true };
     }
 
+    if (apiRes && apiRes.success === false) {
+      return { success: false, message: apiRes.message || 'Registration failed' };
+    }
+
+    // Fallback ONLY if backend is completely offline
     const newUser = {
       ...DEFAULT_DEMO_STUDENT,
       id: 'student-' + Date.now(),
@@ -99,26 +121,28 @@ export function AuthProvider({ children }) {
       targetRole: targetRole || 'Software Developer'
     };
     setUser(newUser);
-    return { success: true };
+    return { success: true, offlineFallback: true };
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('skilltwin_user');
     localStorage.removeItem('skilltwin_token');
   };
 
+  // ERR-015 FIX: Sync target role using dedicated updateTargetRole API endpoint
   const updateTargetRole = async (newRole) => {
     if (!user) return;
     setUser(prev => ({
       ...prev,
       targetRole: newRole
     }));
-    // Sync with backend API
     try {
-      await apiService.updateSkillLevel('', 0); // triggers sync
+      await apiService.updateTargetRole(newRole);
     } catch {}
   };
 
+  // ERR-023 FIX: Avoid score inflation past benchmark where individual over-achieved skill compensates 0% gap
   const updateSkill = async (skillName, newLevel) => {
     if (!user) return;
 
@@ -131,10 +155,15 @@ export function AuthProvider({ children }) {
         }
       };
 
-      // Recalculate average readiness
-      const totalCurrent = Object.values(updatedSkills).reduce((acc, s) => acc + s.current, 0);
+      // Cap per-skill contribution at its required value so surplus doesn't hide deficits
+      const effectiveCurrentSum = Object.values(updatedSkills).reduce(
+        (acc, s) => acc + Math.min(s.current, s.required),
+        0
+      );
       const totalRequired = Object.values(updatedSkills).reduce((acc, s) => acc + s.required, 0);
-      const newScore = Math.min(100, Math.round((totalCurrent / totalRequired) * 100));
+      const newScore = totalRequired > 0 
+        ? Math.min(100, Math.round((effectiveCurrentSum / totalRequired) * 100))
+        : 0;
 
       return {
         ...prev,
@@ -143,7 +172,6 @@ export function AuthProvider({ children }) {
       };
     });
 
-    // Notify backend
     try {
       await apiService.updateSkillLevel(skillName, newLevel);
     } catch {}
@@ -153,10 +181,10 @@ export function AuthProvider({ children }) {
     if (!user) return;
 
     setUser(prev => {
-      const exists = prev.completedMilestones.includes(milestoneId);
+      const exists = prev.completedMilestones?.includes(milestoneId);
       const updated = exists
         ? prev.completedMilestones.filter(m => m !== milestoneId)
-        : [...prev.completedMilestones, milestoneId];
+        : [...(prev.completedMilestones || []), milestoneId];
       return {
         ...prev,
         completedMilestones: updated
