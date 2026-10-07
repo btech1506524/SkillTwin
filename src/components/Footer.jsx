@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function Footer() {
   return (
     <footer className="footer">
@@ -15,8 +17,9 @@ export default function Footer() {
         <div className="footer-column">
           <h4>Resources</h4>
           <a href="#about">About</a>
-          <a href="#contact">Contact</a>
-          <a href="#privacy">Privacy</a>
+          {/* ERR-036 FIX: Avoid empty dead anchors; link to relevant sections or demo */}
+          <Link to="/#features">Platform Guide</Link>
+          <Link to="/login">Student Sign In</Link>
         </div>
       </div>
       <div className="footer-bottom">© 2026 SkillTwin AI. Built for students.</div>

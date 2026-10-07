@@ -5,19 +5,27 @@ export default function CountUp({ end, suffix = '', duration = 2000 }) {
   const [count, setCount] = useState(0);
   const [ref, isInView] = useInView();
 
+  // ERR-038 FIX: Robust check for initial mount and viewport trigger
   useEffect(() => {
     if (!isInView) return;
     let start = 0;
-    const increment = end / (duration / 16);
+    const target = Number(end) || 0;
+    if (target <= 0) return;
+
+    const stepTime = 16;
+    const totalSteps = Math.max(1, duration / stepTime);
+    const increment = target / totalSteps;
+
     const timer = setInterval(() => {
       start += increment;
-      if (start >= end) {
-        setCount(end);
+      if (start >= target) {
+        setCount(target);
         clearInterval(timer);
       } else {
         setCount(Math.floor(start));
       }
-    }, 16);
+    }, stepTime);
+
     return () => clearInterval(timer);
   }, [isInView, end, duration]);
 

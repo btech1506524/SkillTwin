@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Brain, Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles, GraduationCap, Target, Zap } from 'lucide-react';
+import { Brain, Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles, GraduationCap, Target, Zap, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const { signup, loginDemo } = useAuth();
   const navigate = useNavigate();
 
@@ -22,27 +23,45 @@ export default function Signup() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  // ERR-010 & ERR-011 FIX: Await signup, include formData.password, check response status
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
     setLoading(true);
-    setTimeout(() => {
-      signup({
+
+    try {
+      const res = await signup({
         name: formData.name,
         email: formData.email,
+        password: formData.password, // ERR-011: Now explicitly passed!
         semester: formData.semester,
         branch: formData.branch,
         targetRole: formData.targetRole
       });
-      navigate('/dashboard');
-    }, 400);
+
+      setLoading(false);
+      if (res && res.success) {
+        navigate('/dashboard');
+      } else {
+        setErrorMsg(res?.message || 'Failed to create student account.');
+      }
+    } catch (err) {
+      setLoading(false);
+      setErrorMsg('An unexpected error occurred during signup.');
+    }
   };
 
-  const handleDemoLogin = () => {
+  const handleDemoLogin = async () => {
+    setErrorMsg('');
     setLoading(true);
-    setTimeout(() => {
-      loginDemo();
+    try {
+      await loginDemo();
+      setLoading(false);
       navigate('/dashboard');
-    }, 300);
+    } catch (err) {
+      setLoading(false);
+      setErrorMsg('Failed to initialize demo mode.');
+    }
   };
 
   return (
@@ -91,6 +110,24 @@ export default function Signup() {
               <h2>Create Student Profile</h2>
               <p>Configure your career twin parameters</p>
             </div>
+
+            {errorMsg && (
+              <div className="auth-error-alert" style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#f87171',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '16px'
+              }}>
+                <AlertCircle size={16} />
+                <span>{errorMsg}</span>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="auth-form">
               <div className="input-group">
@@ -181,7 +218,7 @@ export default function Signup() {
 
             <div className="auth-divider"><span>or test directly</span></div>
 
-            <button type="button" className="demo-quick-btn" onClick={handleDemoLogin}>
+            <button type="button" className="demo-quick-btn" onClick={handleDemoLogin} disabled={loading}>
               <Zap size={16} /> Instant Demo Access (Preloaded Sem 5 Data)
             </button>
 

@@ -21,9 +21,14 @@ export default function Home() {
     }
   };
 
-  const handleQuickDemo = () => {
-    loginDemo();
-    navigate('/dashboard');
+  // ERR-028 FIX: Await loginDemo before navigating to avoid race conditions
+  const handleQuickDemo = async () => {
+    try {
+      await loginDemo();
+      navigate('/dashboard');
+    } catch {
+      navigate('/dashboard');
+    }
   };
 
   const handleCareerSelect = (roleName) => {

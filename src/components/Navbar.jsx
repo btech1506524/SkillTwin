@@ -16,6 +16,9 @@ export default function Navbar() {
 
   const isHome = location.pathname === "/";
 
+  // ERR-032 FIX: Safe name parsing with null/empty guard
+  const firstName = user?.name ? user.name.trim().split(' ')[0] : 'Student';
+
   return (
     <nav className="navbar">
       <div className="nav-container">
@@ -58,8 +61,8 @@ export default function Navbar() {
                   <User size={14} />
                 </div>
                 <div className="user-meta-mini">
-                  <span className="user-name-mini">{user.name.split(' ')[0]}</span>
-                  <span className="user-sem-mini">Sem {user.semester} CSE</span>
+                  <span className="user-name-mini">{firstName}</span>
+                  <span className="user-sem-mini">Sem {user.semester || '5'} CSE</span>
                 </div>
               </div>
 

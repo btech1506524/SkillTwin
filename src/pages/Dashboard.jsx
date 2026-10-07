@@ -24,7 +24,7 @@ export default function Dashboard() {
   const [resumeAnalysis, setResumeAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // If user is not logged in, prompt or fallback to default
+  // If user is null, fallback cleanly or use session
   const student = user || {
     name: 'Sanjay Kumar',
     email: 'sanjay.cse@student.edu',
@@ -48,8 +48,14 @@ export default function Dashboard() {
     completedMilestones: ['milestone-1', 'milestone-2']
   };
 
-  const currentScore = student.readinessScore;
+  const currentScore = student.readinessScore || 68;
   const effectiveScore = Math.min(100, currentScore + (simulationActive ? simulatedBoost : 0));
+
+  // Dynamic skill statistics computed directly from student.skills (ERR-043 fix)
+  const skillsObj = student.skills || {};
+  const dsaLevel = skillsObj['Data Structures & Algorithms']?.current || 65;
+  const dbmsLevel = skillsObj['DBMS & SQL Queries']?.current || 80;
+  const devopsLevel = skillsObj['Git, Docker & CI/CD']?.current || 35;
 
   const roadmapItems = [
     {
@@ -86,27 +92,44 @@ export default function Dashboard() {
     }
   ];
 
+  // ERR-022 FIX: Deterministic boost calculation based on scenario definitions
+  const SCENARIO_BOOSTS = {
+    'LeetCode 150': 9,
+    'Docker CI/CD': 11,
+    'DBMS Indexing': 7,
+    'System Design Mini': 12
+  };
+
   const handleSimulateScenario = async (boost, label) => {
-    let newSkills;
+    let updatedSkills;
     if (simulatedSkills.includes(label)) {
-      newSkills = simulatedSkills.filter(s => s !== label);
-      setSimulatedSkills(newSkills);
-      setSimulatedBoost(prev => Math.max(0, prev - boost));
-      if (newSkills.length === 0) setSimulationActive(false);
+      updatedSkills = simulatedSkills.filter(s => s !== label);
     } else {
-      newSkills = [...simulatedSkills, label];
-      setSimulatedSkills(newSkills);
-      setSimulatedBoost(prev => prev + boost);
-      setSimulationActive(true);
+      updatedSkills = [...simulatedSkills, label];
     }
 
-    // Call real backend AI simulation
+    setSimulatedSkills(updatedSkills);
+
+    if (updatedSkills.length === 0) {
+      setSimulationActive(false);
+      setSimulatedBoost(0);
+      return;
+    }
+
+    setSimulationActive(true);
+
+    // Call backend simulator if available, fallback to client map
     try {
-      const serverSim = await apiService.simulateCareerBoost(currentScore, newSkills, student.targetRole);
-      if (serverSim && serverSim.success) {
+      const serverSim = await apiService.simulateCareerBoost(currentScore, updatedSkills, student.targetRole);
+      if (serverSim && serverSim.success && typeof serverSim.totalBoost === 'number') {
         setSimulatedBoost(serverSim.totalBoost);
+        return;
       }
     } catch {}
+
+    // Deterministic client fallback calculation
+    const calculatedBoost = updatedSkills.reduce((acc, skill) => acc + (SCENARIO_BOOSTS[skill] || 5), 0);
+    setSimulatedBoost(calculatedBoost);
   };
 
   const resetSimulation = () => {
@@ -122,7 +145,6 @@ export default function Dashboard() {
     setIsAnalyzing(true);
 
     try {
-      // Call real backend AI resume scanner
       const serverResult = await apiService.scanResumeText(resumeText, student.targetRole);
       if (serverResult && serverResult.success) {
         setResumeAnalysis({
@@ -136,7 +158,6 @@ export default function Dashboard() {
       }
     } catch {}
 
-    // Fallback if backend server is not running
     setTimeout(() => {
       setIsAnalyzing(false);
       setResumeAnalysis({
@@ -147,6 +168,9 @@ export default function Dashboard() {
       });
     }, 600);
   };
+
+  // Safe initial for avatar (ERR-031 fix)
+  const avatarInitial = (student.name || 'Sanjay').trim().charAt(0).toUpperCase() || 'S';
 
   return (
     <div className="dashboard-page">
@@ -159,21 +183,21 @@ export default function Dashboard() {
           <div className="profile-header-container">
             <div className="profile-identity">
               <div className="profile-avatar">
-                <span className="avatar-initials">{student.name.charAt(0)}</span>
+                <span className="avatar-initials">{avatarInitial}</span>
                 <div className="profile-online-dot"></div>
               </div>
               <div className="profile-details">
                 <div className="profile-name-row">
-                  <h1>{student.name}</h1>
-                  <span className="badge-sem">Semester {student.semester} CSE</span>
+                  <h1>{student.name || 'Student Profile'}</h1>
+                  <span className="badge-sem">Semester {student.semester || '5'} CSE</span>
                   <span className="badge-status">
                     <Sparkles size={12} /> Twin Active
                   </span>
                 </div>
                 <div className="profile-meta-row">
-                  <span><GraduationCap size={14} /> {student.branch}</span>
-                  <span><Building2 size={14} /> {student.college}</span>
-                  <span><Award size={14} /> CGPA: <strong>{student.cgpa}</strong></span>
+                  <span><GraduationCap size={14} /> {student.branch || 'Computer Science & Engineering'}</span>
+                  <span><Building2 size={14} /> {student.college || 'Engineering College'}</span>
+                  <span><Award size={14} /> CGPA: <strong>{student.cgpa || '8.5'}</strong></span>
                 </div>
               </div>
             </div>
@@ -183,7 +207,7 @@ export default function Dashboard() {
               <div className="role-select-box">
                 <Target size={16} className="role-icon" />
                 <select 
-                  value={student.targetRole} 
+                  value={student.targetRole || 'Software Developer'} 
                   onChange={(e) => updateTargetRole && updateTargetRole(e.target.value)}
                 >
                   <option value="Software Developer">Software Developer (SDE)</option>
@@ -260,7 +284,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* QUICK STATS */}
+          {/* QUICK STATS - Dynamically rendered (ERR-043 fix) */}
           <div className="metric-card stat-summary-card">
             <div className="stat-row">
               <div className="stat-icon-wrapper core-cs">
@@ -268,9 +292,9 @@ export default function Dashboard() {
               </div>
               <div className="stat-content">
                 <span className="stat-title">DSA & Problem Solving</span>
-                <h4>Level 3 (Medium)</h4>
+                <h4>{dsaLevel >= 75 ? 'Advanced' : dsaLevel >= 50 ? 'Level 3 (Medium)' : 'Foundational'} ({dsaLevel}%)</h4>
                 <div className="stat-bar-box">
-                  <div className="stat-bar-fill" style={{ width: '65%' }}></div>
+                  <div className="stat-bar-fill" style={{ width: `${dsaLevel}%` }}></div>
                 </div>
               </div>
             </div>
@@ -281,9 +305,9 @@ export default function Dashboard() {
               </div>
               <div className="stat-content">
                 <span className="stat-title">Databases & Architecture</span>
-                <h4>80% Proficiency</h4>
+                <h4>{dbmsLevel}% Proficiency</h4>
                 <div className="stat-bar-box">
-                  <div className="stat-bar-fill" style={{ width: '80%' }}></div>
+                  <div className="stat-bar-fill" style={{ width: `${dbmsLevel}%` }}></div>
                 </div>
               </div>
             </div>
@@ -293,10 +317,10 @@ export default function Dashboard() {
                 <Cpu size={20} />
               </div>
               <div className="stat-content">
-                <span className="stat-title">DevOps & Cloud (Gap Area)</span>
-                <h4 className="text-warning">35% Need Attention</h4>
+                <span className="stat-title">DevOps & Cloud {devopsLevel < 50 ? '(Gap Area)' : ''}</span>
+                <h4 className={devopsLevel < 50 ? "text-warning" : ""}>{devopsLevel}% {devopsLevel < 50 ? 'Needs Attention' : 'Proficiency'}</h4>
                 <div className="stat-bar-box">
-                  <div className="stat-bar-fill warning" style={{ width: '35%' }}></div>
+                  <div className={`stat-bar-fill ${devopsLevel < 50 ? 'warning' : ''}`} style={{ width: `${devopsLevel}%` }}></div>
                 </div>
               </div>
             </div>
@@ -355,7 +379,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="skills-interactive-grid">
-                  {Object.entries(student.skills).map(([name, data]) => {
+                  {Object.entries(student.skills || {}).map(([name, data]) => {
                     const isGap = data.current < data.required;
                     return (
                       <div key={name} className={`skill-slider-card ${isGap ? 'has-gap' : 'on-target'}`}>
@@ -524,11 +548,16 @@ export default function Dashboard() {
                   <div className="simulation-result-banner">
                     <div className="sim-result-text">
                       <h4>Simulation Active: Readiness jumps from <strong>{currentScore}%</strong> to <span className="highlight-score">{effectiveScore}%</span></h4>
-                      <p>Applying these {simulatedSkills.length} milestones moves you into the top 15% tier for {student.targetRole} campus drives.</p>
+                      <p>Applying these {simulatedSkills.length} milestones moves you into the top 15% tier for {student.targetRole || 'Software Developer'} campus drives.</p>
                     </div>
-                    <Link to="/#how-it-works" className="primary-btn">
-                      Add to My Study Plan <ArrowUpRight size={16} />
-                    </Link>
+                    {/* ERR-033 FIX: Keep user inside dashboard, switch tab to roadmap */}
+                    <button 
+                      type="button"
+                      onClick={() => setActiveTab('roadmap')}
+                      className="primary-btn"
+                    >
+                      View in Study Roadmap <ArrowUpRight size={16} />
+                    </button>
                   </div>
                 )}
               </div>

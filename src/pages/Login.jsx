@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Brain, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Zap, CheckCircle2 } from 'lucide-react';
+import { Brain, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Zap, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -8,24 +8,48 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
   const { login, loginDemo } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  // ERR-008 FIX: Await login async result, handle errors, show feedback
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
+    setInfoMsg('');
     setLoading(true);
-    setTimeout(() => {
-      login(email, password);
-      navigate('/dashboard');
-    }, 400);
+
+    try {
+      const res = await login(email, password);
+      setLoading(false);
+      if (res && res.success) {
+        if (res.offlineFallback) {
+          setInfoMsg('Logged in with offline profile fallback.');
+        }
+        navigate('/dashboard');
+      } else {
+        setErrorMsg(res?.message || 'Invalid email or password.');
+      }
+    } catch (err) {
+      setLoading(false);
+      setErrorMsg('An unexpected error occurred during login.');
+    }
   };
 
-  const handleDemoLogin = () => {
+  // ERR-009 FIX: Await demo login before navigation
+  const handleDemoLogin = async () => {
+    setErrorMsg('');
+    setInfoMsg('');
     setLoading(true);
-    setTimeout(() => {
-      loginDemo();
+    try {
+      await loginDemo();
+      setLoading(false);
       navigate('/dashboard');
-    }, 300);
+    } catch (err) {
+      setLoading(false);
+      setErrorMsg('Failed to initialize demo login.');
+    }
   };
 
   return (
@@ -76,6 +100,38 @@ export default function Login() {
               <p>Enter your student or university credentials</p>
             </div>
 
+            {errorMsg && (
+              <div className="auth-error-alert" style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#f87171',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '16px'
+              }}>
+                <AlertCircle size={16} />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {infoMsg && (
+              <div className="auth-info-alert" style={{
+                background: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                color: '#60a5fa',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                marginBottom: '16px'
+              }}>
+                {infoMsg}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="auth-form">
               <div className="input-group">
                 <label>Email Address</label>
@@ -94,7 +150,14 @@ export default function Login() {
               <div className="input-group">
                 <div className="label-row">
                   <label>Password</label>
-                  <a href="#forgot" onClick={(e) => { e.preventDefault(); alert("Use the Demo Account button or enter any demo password!"); }} className="forgot-link">Forgot password?</a>
+                  {/* ERR-029 FIX: Replace alert popup with helpful inline notice */}
+                  <span 
+                    style={{ fontSize: '12px', color: '#818cf8', cursor: 'pointer' }}
+                    onClick={() => setInfoMsg('Use demo account or reset password via administrator.')}
+                    className="forgot-link"
+                  >
+                    Forgot password?
+                  </span>
                 </div>
                 <div className="input-wrapper">
                   <Lock size={18} className="input-icon" />
@@ -118,7 +181,7 @@ export default function Login() {
 
             <div className="auth-divider"><span>or evaluate quickly</span></div>
 
-            <button type="button" className="demo-quick-btn" onClick={handleDemoLogin}>
+            <button type="button" className="demo-quick-btn" onClick={handleDemoLogin} disabled={loading}>
               <Zap size={16} /> Continue as Demo Sem 5 CSE Student
             </button>
 

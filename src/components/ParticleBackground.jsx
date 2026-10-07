@@ -5,7 +5,10 @@ export default function ParticleBackground() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     let animationId;
     let particles = [];
 
@@ -19,8 +22,8 @@ export default function ParticleBackground() {
         this.reset();
       }
       reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
+        this.x = Math.random() * (canvas.width || 800);
+        this.y = Math.random() * (canvas.height || 600);
         this.size = Math.random() * 2 + 0.5;
         this.speedX = (Math.random() - 0.5) * 0.4;
         this.speedY = (Math.random() - 0.5) * 0.4;
@@ -44,27 +47,36 @@ export default function ParticleBackground() {
 
     const init = () => {
       resize();
-      particles = Array.from({ length: 60 }, () => new Particle());
+      // ERR-034 FIX: Optimized count (38 particles) + spatial distance squared threshold
+      // to avoid heavy Math.sqrt and frame drops on devices
+      particles = Array.from({ length: 38 }, () => new Particle());
     };
+
+    const maxDist = 120;
+    const maxDistSq = maxDist * maxDist;
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach(p => {
+      const count = particles.length;
+
+      for (let i = 0; i < count; i++) {
+        const p = particles[i];
         p.update();
         p.draw();
-      });
 
-      // Draw connections
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 150) {
+        // Optimized proximity lines without repetitive sqrt
+        for (let j = i + 1; j < count; j++) {
+          const p2 = particles[j];
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const distSq = dx * dx + dy * dy;
+
+          if (distSq < maxDistSq) {
+            const alpha = 0.05 * (1 - distSq / maxDistSq);
             ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(124, 58, 237, ${0.06 * (1 - dist / 150)})`;
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(124, 58, 237, ${alpha})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
