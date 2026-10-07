@@ -1,6 +1,5 @@
-// ERR-030 FIX: dotenv.config() MUST be the very first statement.
-// Previously it was called on line 4 AFTER db.js was required on line 1,
-// meaning DB credentials from .env were not yet loaded when the pool was created.
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 require("dotenv").config();
 
 const db = require("./db");

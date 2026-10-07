@@ -5,7 +5,14 @@ import authRoutes from './routes/auth.js';
 import studentRoutes from './routes/student.js';
 import aiRoutes from './routes/ai.js';
 
-// Load environment variables first
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from the server folder's .env or root
+dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config();
 
 // ERR-042 FIX: Validate JWT_SECRET at startup — fail fast rather than using a silent fallback
