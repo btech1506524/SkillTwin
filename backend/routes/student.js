@@ -4,6 +4,85 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+const levelScores = { Beginner: 25, Intermediate: 50, Advanced: 75, Expert: 100 };
+const importanceScores = { Low: 1, Medium: 2, High: 3, Critical: 4 };
+
+async function getCareerReadiness(userId) {
+  const [rows] = await db.query(
+    `SELECT r.role_id, r.role_name, s.skill_id, s.skill_name, s.category,
+            crs.required_level, crs.importance,
+            profile.proficiency_score, profile.user_id AS profile_user_id
+     FROM users u
+     JOIN career_roles r ON r.role_name = u.target_role
+     JOIN career_role_skills crs ON crs.role_id = r.role_id
+     JOIN skills s ON s.skill_id = crs.skill_id
+     LEFT JOIN (
+       SELECT us.user_id,
+              CASE
+                WHEN source_skill.skill_name = 'Data Structures and Algorithms' THEN 'Data Structures & Algorithms'
+                WHEN source_skill.skill_name IN ('C++', 'Java') THEN 'Object-Oriented Programming (Java/C++)'
+                WHEN source_skill.skill_name = 'React' THEN 'React.js & Frontend'
+                WHEN source_skill.skill_name = 'SQL' THEN 'DBMS & SQL Queries'
+                ELSE source_skill.skill_name
+              END AS canonical_skill_name,
+              MAX(us.proficiency_score) AS proficiency_score
+       FROM user_skills us
+       JOIN skills source_skill ON source_skill.skill_id = us.skill_id
+       GROUP BY us.user_id, canonical_skill_name
+     ) profile ON profile.user_id = u.user_id AND profile.canonical_skill_name = s.skill_name
+     WHERE u.user_id = ?
+     ORDER BY crs.importance DESC, s.skill_name`,
+    [userId]
+  );
+
+  if (!rows.length) {
+    return {
+      targetRole: null,
+      readinessScore: 0,
+      totalRequiredSkills: 0,
+      missingCount: 0,
+      belowTargetCount: 0,
+      metCount: 0,
+      skills: [],
+      gaps: []
+    };
+  }
+
+  const skills = rows.map(row => {
+    const required = levelScores[row.required_level] || 50;
+    const missing = row.profile_user_id === null;
+    const current = missing ? 0 : Number(row.proficiency_score || 0);
+    return {
+      skillId: row.skill_id,
+      skillName: row.skill_name,
+      category: row.category,
+      current,
+      required,
+      requiredLevel: row.required_level,
+      importance: importanceScores[row.importance] || Number(row.importance) || 1,
+      missing,
+      gap: Math.max(0, required - current),
+      status: missing ? "Missing" : current < required ? "Below target" : "Met"
+    };
+  });
+
+  const totalRequired = skills.reduce((sum, skill) => sum + skill.required, 0);
+  const totalCurrent = skills.reduce((sum, skill) => sum + Math.min(skill.current, skill.required), 0);
+  const missingCount = skills.filter(skill => skill.missing).length;
+  const belowTargetCount = skills.filter(skill => !skill.missing && skill.current < skill.required).length;
+
+  return {
+    targetRole: { id: rows[0].role_id, name: rows[0].role_name },
+    readinessScore: totalRequired ? Math.round(totalCurrent / totalRequired * 100) : 0,
+    totalRequiredSkills: skills.length,
+    missingCount,
+    belowTargetCount,
+    metCount: skills.length - missingCount - belowTargetCount,
+    skills,
+    gaps: skills.filter(skill => skill.status !== "Met")
+  };
+}
+
 
 // =====================================================
 // GET STUDENT PROFILE
@@ -117,8 +196,21 @@ router.put("/skills", authMiddleware, async (req, res) => {
     if (!resolvedSkillId) {
       return res.status(400).json({
         success: false,
-        message: "skill_id is required."
+        message: "A valid skill_id or skillName is required."
       });
+    }
+
+    const score = Number(proficiency_score ?? currentLevel ?? 0);
+    const years = Number(years_experience ?? 0);
+    if (!Number.isFinite(score) || score < 0 || score > 100) {
+      return res.status(400).json({ success: false, message: "Skill score must be between 0 and 100." });
+    }
+    if (!Number.isFinite(years) || years < 0 || years > 80) {
+      return res.status(400).json({ success: false, message: "Years of experience must be between 0 and 80." });
+    }
+    const level = proficiency_level || (score >= 100 ? "Expert" : score >= 75 ? "Advanced" : score >= 50 ? "Intermediate" : "Beginner");
+    if (!Object.hasOwn(levelScores, level)) {
+      return res.status(400).json({ success: false, message: "Invalid proficiency level." });
     }
 
     const [skill] = await db.query(
@@ -150,9 +242,9 @@ router.put("/skills", authMiddleware, async (req, res) => {
       [
         req.user.user_id,
         resolvedSkillId,
-        proficiency_level || ((proficiency_score ?? currentLevel ?? 0) >= 75 ? "Advanced" : (proficiency_score ?? currentLevel ?? 0) >= 50 ? "Intermediate" : "Beginner"),
-        proficiency_score ?? currentLevel ?? 0,
-        years_experience || 0
+        level,
+        score,
+        years
       ]
     );
 
@@ -363,63 +455,22 @@ router.get("/milestones", authMiddleware, async (req, res) => {
 // =====================================================
 
 router.get("/readiness", authMiddleware, async (req, res) => {
-
   try {
-
-    const [rows] = await db.query(
-      `SELECT
-        COUNT(*) AS total_skills,
-        COALESCE(SUM(us.proficiency_score), 0) AS total_current,
-        COALESCE(SUM(
-          CASE
-            WHEN crs.required_level = 'Beginner' THEN 25
-            WHEN crs.required_level = 'Intermediate' THEN 50
-            WHEN crs.required_level = 'Advanced' THEN 75
-            WHEN crs.required_level = 'Expert' THEN 100
-            ELSE 50
-          END
-        ), 0) AS total_required
-       FROM user_skills us
-       JOIN career_role_skills crs
-         ON us.skill_id = crs.skill_id
-       JOIN roadmaps r
-         ON crs.role_id = r.role_id
-       WHERE us.user_id = ?
-       AND r.user_id = ?`,
-      [
-        req.user.user_id,
-        req.user.user_id
-      ]
-    );
-
-    const data = rows[0];
-
-    let readinessScore = 0;
-
-    if (Number(data.total_required) > 0) {
-      readinessScore = Math.min(
-        100,
-        Math.round(
-          (Number(data.total_current) /
-            Number(data.total_required)) * 100
-        )
-      );
-    }
-
-    res.json({
-      success: true,
-      readinessScore
-    });
-
+    const data = await getCareerReadiness(req.user.user_id);
+    res.json({ success: true, ...data });
   } catch (error) {
-
     console.error("Readiness error:", error);
+    res.status(500).json({ success: false, message: "Unable to calculate readiness." });
+  }
+});
 
-    res.status(500).json({
-      success: false,
-      message: "Unable to calculate readiness."
-    });
-
+router.get("/gaps", authMiddleware, async (req, res) => {
+  try {
+    const data = await getCareerReadiness(req.user.user_id);
+    res.json({ success: true, ...data });
+  } catch (error) {
+    console.error("Skill gap error:", error);
+    res.status(500).json({ success: false, message: "Unable to calculate skill gaps." });
   }
 });
 

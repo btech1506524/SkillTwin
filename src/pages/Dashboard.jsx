@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Brain, Target, TrendingUp, FileText, CheckCircle2, Circle, AlertCircle, 
@@ -13,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 
 export default function Dashboard() {
-  const { user, updateSkill, toggleMilestone, updateTargetRole } = useAuth();
+  const { user, updateSkill, toggleMilestone, updateTargetRole, refreshCareerReadiness } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('skills'); // 'skills', 'roadmap', 'simulator', 'resume'
@@ -23,6 +23,10 @@ export default function Dashboard() {
   const [resumeText, setResumeText] = useState('');
   const [resumeAnalysis, setResumeAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  useEffect(() => {
+    refreshCareerReadiness();
+  }, [refreshCareerReadiness]);
 
   // If user is null, fallback cleanly or use session
   const student = user || {
@@ -48,7 +52,7 @@ export default function Dashboard() {
     completedMilestones: ['milestone-1', 'milestone-2']
   };
 
-  const currentScore = student.readinessScore || 68;
+  const currentScore = student.readinessScore ?? 68;
   const effectiveScore = Math.min(100, currentScore + (simulationActive ? simulatedBoost : 0));
 
   // Dynamic skill statistics computed directly from student.skills (ERR-043 fix)
@@ -370,7 +374,12 @@ export default function Dashboard() {
                 <div className="pane-header">
                   <div>
                     <h2>Sem 5 CSE Competency Matrix</h2>
-                    <p>Interactive sliders adjust your skill twin in real-time. Notice how your score updates as you gain proficiency.</p>
+                    <p>Skill targets are based on your selected {student.targetRole || 'career'} role. Adjust your proficiency to update readiness.</p>
+                    {student.readinessSummary && (
+                      <p className="readiness-gap-summary" role="status">
+                        {student.readinessSummary.missingCount} missing skills · {student.readinessSummary.belowTargetCount} below target · {student.readinessSummary.metCount} meeting target
+                      </p>
+                    )}
                   </div>
                   <div className="legend-pills">
                     <span className="legend-item"><span className="legend-dot current"></span> Your Level</span>
@@ -386,7 +395,7 @@ export default function Dashboard() {
                         <div className="skill-card-top">
                           <span className="skill-category-tag">{data.category}</span>
                           {isGap ? (
-                            <span className="gap-tag"><AlertCircle size={12} /> Gap: {data.required - data.current}%</span>
+                            <span className="gap-tag"><AlertCircle size={12} /> {data.missing ? 'Missing' : `Gap: ${data.required - data.current}%`}</span>
                           ) : (
                             <span className="good-tag"><CheckCircle2 size={12} /> Target Met</span>
                           )}
@@ -407,7 +416,7 @@ export default function Dashboard() {
                         <div className="slider-action-row">
                           <input 
                             type="range" 
-                            min="10" 
+                            min="0"
                             max="100" 
                             value={data.current} 
                             onChange={(e) => updateSkill && updateSkill(name, parseInt(e.target.value))}

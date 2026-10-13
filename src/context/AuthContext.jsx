@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiService } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -137,9 +137,35 @@ export function AuthProvider({ children }) {
       targetRole: newRole
     }));
     try {
-      await apiService.updateTargetRole(newRole);
+      const response = await apiService.updateTargetRole(newRole);
+      if (response?.success) await refreshCareerReadiness();
     } catch {}
   };
+
+  const refreshCareerReadiness = useCallback(async () => {
+    if (!localStorage.getItem('skilltwin_token')) return null;
+    const data = await apiService.getCareerReadiness();
+    if (!data?.success) return null;
+    setUser(prev => prev ? ({
+      ...prev,
+      targetRole: data.targetRole?.name || prev.targetRole,
+      readinessScore: data.readinessScore,
+      skills: Object.fromEntries(data.skills.map(skill => [skill.skillName, {
+        current: skill.current,
+        required: skill.required,
+        category: skill.category,
+        missing: skill.missing
+      }])),
+      skillGaps: data.gaps,
+      readinessSummary: {
+        totalRequiredSkills: data.totalRequiredSkills,
+        missingCount: data.missingCount,
+        belowTargetCount: data.belowTargetCount,
+        metCount: data.metCount
+      }
+    }) : prev);
+    return data;
+  }, []);
 
   // ERR-023 FIX: Avoid score inflation past benchmark where individual over-achieved skill compensates 0% gap
   const updateSkill = async (skillName, newLevel) => {
@@ -150,7 +176,8 @@ export function AuthProvider({ children }) {
         ...prev.skills,
         [skillName]: {
           ...prev.skills[skillName],
-          current: newLevel
+          current: newLevel,
+          missing: false
         }
       };
 
@@ -163,11 +190,25 @@ export function AuthProvider({ children }) {
       const newScore = totalRequired > 0 
         ? Math.min(100, Math.round((effectiveCurrentSum / totalRequired) * 100))
         : 0;
+      const skillEntries = Object.entries(updatedSkills);
+      const missingCount = skillEntries.filter(([, skill]) => skill.missing).length;
+      const belowTargetCount = skillEntries.filter(([, skill]) => !skill.missing && skill.current < skill.required).length;
+      const metCount = skillEntries.length - missingCount - belowTargetCount;
 
       return {
         ...prev,
         skills: updatedSkills,
-        readinessScore: newScore
+        readinessScore: newScore,
+        skillGaps: skillEntries
+          .filter(([, skill]) => skill.missing || skill.current < skill.required)
+          .map(([name, skill]) => ({ skillName: name, current: skill.current, required: skill.required, missing: skill.missing })),
+        readinessSummary: {
+          ...(prev.readinessSummary || {}),
+          totalRequiredSkills: skillEntries.length,
+          missingCount,
+          belowTargetCount,
+          metCount
+        }
       };
     });
 
@@ -204,7 +245,8 @@ export function AuthProvider({ children }) {
       logout,
       updateTargetRole,
       updateSkill,
-      toggleMilestone
+      toggleMilestone,
+      refreshCareerReadiness
     }}>
       {children}
     </AuthContext.Provider>

@@ -68,6 +68,7 @@ app.get("/api/health", async (req, res) => {
           "/api/student/profile",
           "/api/student/skills",
           "/api/student/target-role",
+          "/api/student/gaps",
           "/api/student/readiness",
           "/api/student/milestones"
         ],
@@ -173,6 +174,7 @@ app.listen(PORT, () => {
   console.log("GET /api/student/target-role");
   console.log("PUT /api/student/target-role");
   console.log("GET /api/student/readiness");
+  console.log("GET /api/student/gaps");
   console.log("");
   console.log("AI:");
   console.log("POST /api/ai/simulate");

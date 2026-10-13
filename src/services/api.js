@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
 
 // Create Axios instance
 export const apiClient = axios.create({
@@ -74,6 +74,15 @@ export const apiService = {
   getProfile: async () => {
     try {
       const response = await apiClient.get('/student/profile');
+      return response.data;
+    } catch (err) {
+      return null;
+    }
+  },
+
+  getCareerReadiness: async () => {
+    try {
+      const response = await apiClient.get('/student/gaps');
       return response.data;
     } catch (err) {
       return null;
