@@ -18,7 +18,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
 
 2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds the skills and roles, and installs the assessment catalogue and personalized roadmap tables. For an existing database, apply migrations `001_student_readiness.sql`, `002_assessments.sql`, and `003_personalized_roadmaps.sql` in order. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
 
-3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET`.
+3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET` (at least 32 characters for production).
 
 4. Start the API and client in separate terminals:
 
@@ -27,7 +27,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm run dev
    ```
 
-   The API listens on port 5001 and Vite on port 5173. Set `VITE_API_BASE_URL` only if the API uses a different origin; its default is `http://localhost:5001/api`.
+   The API listens on port 5001 and Vite on port 5173. The frontend calls `/api` on the same origin; Vite proxies that path to the local API during development. Set `VITE_DEV_API_PROXY` if the local backend uses another address.
 
 ## Demo access
 
@@ -42,7 +42,7 @@ Choose **Instant Demo Access** on Login or Signup, or use the home page demo act
 - `POST /api/ai/simulate`, `POST /api/ai/analyze-resume`
 - `GET /api/assessments`, `GET /api/assessments/:assessmentId`
 - `POST /api/assessments/:assessmentId/submit`, `GET /api/assessments/results`, `GET /api/assessments/results/:resultId`
-- `GET /api/roadmap`, `POST /api/roadmap/generate`, `PUT /api/roadmap/milestones/:milestoneId`
+- `GET /api/roadmap`, `GET /api/roadmap/progress`, `POST /api/roadmap/generate`, `PUT /api/roadmap/milestones/:milestoneId`
 - `GET /api/health`
 
 ## Project progress
@@ -67,10 +67,27 @@ The assessment migration upgrades the original assessment tables in place and pr
 
 The roadmap migration adds `roadmap_milestones` and a current-snapshot marker while retaining existing roadmap rows.
 
-### Next phase — Phase 12: Progress tracking
+### Phase 12 — Progress tracking (implemented)
 
-Add a broader progress view across roadmap and skill development: dated progress history, completion trends, and evidence of how skill updates move readiness toward the selected role. Keep completion records tied to the authenticated student and distinguish self-reported changes from assessment results.
+- Persists planned, in-progress, and completed roadmap-task states, including completion timestamps.
+- Calculates completion percentage and task counts from saved task states, and keeps the roadmap's aggregate status in sync.
+- Recomputes and stores career readiness after each saved skill update; authenticated clients refresh the displayed gaps and readiness.
+- Shows each task state, completion date, completion percentage, and counts on the dashboard.
+
+Phase 12 uses the Phase 11 `roadmap_milestones` table and adds no additional database migration.
+
+### Next phase — Phase 13: Resume analysis
+
+Improve resume analysis so it can compare resume evidence with the student's selected role requirements and clearly report supported skills and remaining gaps.
 
 The root `npm run build` command builds the frontend for production.
+
+## Production deployment
+
+Deploy the built `dist/` directory to an HTTPS static host and run `backend/` as a separate Node.js service. Configure the HTTPS reverse proxy or platform routing so `/api/*` is forwarded to the API service and other paths serve the SPA entry point. The default frontend API URL is same-origin `/api`; for a separately hosted API, set `VITE_API_BASE_URL` at build time and set `CLIENT_ORIGIN` to the exact frontend origin(s).
+
+Set `NODE_ENV=production`, `PORT`, `JWT_SECRET` (at least 32 randomly generated characters), `CLIENT_ORIGIN` (comma-separated HTTPS origins, no wildcards), and `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, and `DB_PORT`. Production startup rejects missing secrets/database settings, insecure client origins, and database TLS disabled. Set `DB_SSL=true`; when the database provider requires a private CA, set `DB_SSL_CA` to its CA bundle path. Use a dedicated least-privilege database account and keep credentials in the deployment secret store, never in the repository.
+
+Apply schema/migrations before deploying. Keep MySQL on a private network, enable encrypted database backups and restore procedures, and configure request rate limits for `/api/auth/login` and `/api/auth/register` at the trusted ingress or API gateway (especially when running multiple API instances). Terminate HTTPS at a trusted load balancer, set its security headers/HSTS policy, and expose `/api/health/live` for liveness plus `/api/health/ready` for database readiness. The API bounds JSON bodies to 64 KB and drains connections on SIGTERM/SIGINT. Build with `npm run build`; deploy the resulting `dist/` and start the API with `npm --prefix backend start`.
 
 The gap response lists every skill required by the selected role, including skills the student has not recorded. Readiness is the unweighted sum of each current score capped at that skill's required score, divided by the sum of all required scores. Missing skills count as zero. The resume analyzer and career simulator currently use local deterministic rules; neither calls an external AI model.

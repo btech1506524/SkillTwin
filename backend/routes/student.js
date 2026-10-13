@@ -83,6 +83,12 @@ async function getCareerReadiness(userId) {
   };
 }
 
+async function refreshAndPersistReadiness(userId) {
+  const readiness = await getCareerReadiness(userId);
+  await db.query("UPDATE users SET readiness_score = ? WHERE user_id = ?", [readiness.readinessScore, userId]);
+  return readiness;
+}
+
 
 // =====================================================
 // GET STUDENT PROFILE
@@ -248,9 +254,13 @@ router.put("/skills", authMiddleware, async (req, res) => {
       ]
     );
 
+    const readiness = await refreshAndPersistReadiness(req.user.user_id);
+
     res.json({
       success: true,
-      message: "Skill updated successfully."
+      message: "Skill updated successfully.",
+      readinessScore: readiness.readinessScore,
+      readiness
     });
 
   } catch (error) {
@@ -456,7 +466,7 @@ router.get("/milestones", authMiddleware, async (req, res) => {
 
 router.get("/readiness", authMiddleware, async (req, res) => {
   try {
-    const data = await getCareerReadiness(req.user.user_id);
+    const data = await refreshAndPersistReadiness(req.user.user_id);
     res.json({ success: true, ...data });
   } catch (error) {
     console.error("Readiness error:", error);
@@ -466,7 +476,7 @@ router.get("/readiness", authMiddleware, async (req, res) => {
 
 router.get("/gaps", authMiddleware, async (req, res) => {
   try {
-    const data = await getCareerReadiness(req.user.user_id);
+    const data = await refreshAndPersistReadiness(req.user.user_id);
     res.json({ success: true, ...data });
   } catch (error) {
     console.error("Skill gap error:", error);

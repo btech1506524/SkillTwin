@@ -72,14 +72,7 @@ export function AuthProvider({ children }) {
       return { success: false, message: apiRes.message || 'Invalid email or password' };
     }
 
-    // Fallback ONLY when backend is completely offline (apiRes === null)
-    const studentUser = {
-      ...DEFAULT_DEMO_STUDENT,
-      email: email || DEFAULT_DEMO_STUDENT.email,
-      name: email ? email.split('@')[0].replace('.', ' ') : DEFAULT_DEMO_STUDENT.name
-    };
-    setUser(studentUser);
-    return { success: true, offlineFallback: true };
+    return { success: false, message: 'Unable to sign in right now. Please try again.' };
   };
 
   const loginDemo = async () => {
@@ -109,18 +102,7 @@ export function AuthProvider({ children }) {
       return { success: false, message: apiRes.message || 'Registration failed' };
     }
 
-    // Fallback ONLY if backend is completely offline
-    const newUser = {
-      ...DEFAULT_DEMO_STUDENT,
-      id: 'student-' + Date.now(),
-      name: name || 'CSE Student',
-      email: email,
-      semester: semester || '5',
-      branch: branch || 'Computer Science & Engineering',
-      targetRole: targetRole || 'Software Developer'
-    };
-    setUser(newUser);
-    return { success: true, offlineFallback: true };
+    return { success: false, message: 'Unable to create your account right now. Please try again.' };
   };
 
   const logout = () => {
@@ -215,7 +197,8 @@ export function AuthProvider({ children }) {
     });
 
     try {
-      await apiService.updateSkillLevel(skillName, newLevel);
+      const response = await apiService.updateSkillLevel(skillName, newLevel);
+      if (response?.success) await refreshCareerReadiness();
     } catch {}
   };
 

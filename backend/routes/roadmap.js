@@ -80,9 +80,10 @@ async function generateRoadmap(userId) {
     await connection.query("UPDATE roadmaps SET is_current = FALSE WHERE user_id = ?", [userId]);
     const [created] = await connection.query(
       `INSERT INTO roadmaps (user_id, role_id, roadmap_title, description, status, is_current)
-       VALUES (?, ?, ?, ?, 'Not Started', TRUE)`,
+       VALUES (?, ?, ?, ?, ?, TRUE)`,
       [userId, role.roleId, `${role.roleName} Learning Roadmap`,
-        `Prioritized learning milestones generated from your ${role.roleName} role requirements and current skill profile.`]
+        `Prioritized learning milestones generated from your ${role.roleName} role requirements and current skill profile.`,
+        gaps.length ? "Not Started" : "Completed"]
     );
 
     for (const [index, skill] of gaps.entries()) {
@@ -134,16 +135,38 @@ async function loadCurrentRoadmap(userId) {
     [roadmap.id]
   );
   const completedCount = milestones.filter(item => item.status === "Completed").length;
+  const inProgressCount = milestones.filter(item => item.status === "In Progress").length;
+  const plannedCount = milestones.filter(item => item.status === "Planned").length;
+  const totalCount = milestones.length;
   return {
     ...roadmap,
     milestones: milestones.map(item => ({ ...item, sequence: Number(item.sequence), priorityScore: Number(item.priorityScore), estimatedHours: Number(item.estimatedHours) })),
     progress: {
-      total: milestones.length,
+      total: totalCount,
       completed: completedCount,
-      percentage: milestones.length ? Math.round(completedCount / milestones.length * 100) : 100
+      inProgress: inProgressCount,
+      planned: plannedCount,
+      percentage: totalCount ? Math.round(completedCount / totalCount * 100) : 100,
+      status: completedCount === totalCount ? "Completed" : completedCount || inProgressCount ? "In Progress" : "Not Started"
     }
   };
 }
+
+router.get("/progress", async (req, res) => {
+  try {
+    let roadmap = await loadCurrentRoadmap(req.user.user_id);
+    if (!roadmap) {
+      const roadmapId = await generateRoadmap(req.user.user_id);
+      if (!roadmapId) return res.status(404).json({ success: false, message: "Choose a supported target role before loading progress." });
+      roadmap = await loadCurrentRoadmap(req.user.user_id);
+    }
+    const [users] = await db.query("SELECT readiness_score AS readinessScore FROM users WHERE user_id = ?", [req.user.user_id]);
+    res.json({ success: true, roleName: roadmap.roleName, progress: roadmap.progress, readinessScore: Number(users[0]?.readinessScore || 0) });
+  } catch (error) {
+    console.error("Roadmap progress error:", error);
+    res.status(500).json({ success: false, message: "Unable to load your progress." });
+  }
+});
 
 router.get("/", async (req, res) => {
   try {

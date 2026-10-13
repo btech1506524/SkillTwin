@@ -13,6 +13,19 @@ import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import AssessmentsPanel from '../components/AssessmentsPanel';
 
+const summarizeRoadmapItems = (items) => {
+  const completed = items.filter(item => item.status === 'completed').length;
+  const inProgress = items.filter(item => item.status === 'in-progress').length;
+  const planned = items.filter(item => item.status === 'pending').length;
+  return {
+    total: items.length,
+    completed,
+    inProgress,
+    planned,
+    percentage: items.length ? Math.round(completed / items.length * 100) : 100
+  };
+};
+
 export default function Dashboard() {
   const { user, updateSkill, toggleMilestone, updateTargetRole, refreshCareerReadiness } = useAuth();
   const navigate = useNavigate();
@@ -25,6 +38,7 @@ export default function Dashboard() {
   const [resumeAnalysis, setResumeAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [roadmapItems, setRoadmapItems] = useState([]);
+  const [roadmapProgress, setRoadmapProgress] = useState({ total: 0, completed: 0, inProgress: 0, planned: 0, percentage: 0 });
   const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [roadmapError, setRoadmapError] = useState('');
 
@@ -103,6 +117,7 @@ export default function Dashboard() {
   const syncRoadmap = async (regenerate = false) => {
     if (!localStorage.getItem('skilltwin_token')) {
       setRoadmapItems(fallbackRoadmapItems);
+      setRoadmapProgress(summarizeRoadmapItems(fallbackRoadmapItems));
       setRoadmapError('');
       return;
     }
@@ -112,14 +127,17 @@ export default function Dashboard() {
       ? await apiService.generateLearningRoadmap()
       : await apiService.getLearningRoadmap();
     if (response?.success && response.roadmap) {
-      setRoadmapItems(response.roadmap.milestones.map(item => ({
+      const items = response.roadmap.milestones.map(item => ({
         id: item.id,
         week: `Step ${item.sequence}`,
         title: item.title,
         description: `${item.description} ${item.outcome}`,
         skills: [item.skillName],
+        completedAt: item.completedAt,
         status: item.status === 'Completed' ? 'completed' : item.status === 'In Progress' ? 'in-progress' : 'pending'
-      })));
+      }));
+      setRoadmapItems(items);
+      setRoadmapProgress(response.roadmap.progress || summarizeRoadmapItems(items));
     } else {
       setRoadmapError(response?.message || 'Unable to load your learning roadmap.');
     }
@@ -135,10 +153,14 @@ export default function Dashboard() {
       await toggleMilestone?.(item.id);
       return;
     }
-    const status = item.status === 'completed' ? 'Planned' : 'Completed';
+    const status = item.status === 'completed' ? 'Planned' : item.status === 'in-progress' ? 'Completed' : 'In Progress';
+    setRoadmapLoading(true);
     const response = await apiService.updateRoadmapMilestone(item.id, status);
     if (response?.success) await syncRoadmap();
-    else setRoadmapError(response?.message || 'Unable to update this milestone.');
+    else {
+      setRoadmapLoading(false);
+      setRoadmapError(response?.message || 'Unable to update this milestone.');
+    }
   };
 
   const handleTargetRoleChange = async (event) => {
@@ -498,7 +520,10 @@ export default function Dashboard() {
                     <p>{localStorage.getItem('skilltwin_token') ? 'Ordered learning milestones generated from your role requirements and current skill gaps.' : 'Actionable weekly checklist structured around Sem 5 university exams and upcoming on-campus placements.'}</p>
                   </div>
                   <div className="roadmap-progress-indicator">
-                    <span>Milestones Completed: {roadmapItems.filter(item => item.status === 'completed').length} / {roadmapItems.length}</span>
+                    <span>{roadmapProgress.percentage}% complete · {roadmapProgress.completed} completed · {roadmapProgress.inProgress} in progress · {roadmapProgress.planned} pending</span>
+                    <div className="roadmap-progress-track" role="progressbar" aria-label="Roadmap completion" aria-valuenow={roadmapProgress.percentage} aria-valuemin="0" aria-valuemax="100">
+                      <div className="roadmap-progress-fill" style={{ width: `${roadmapProgress.percentage}%` }} />
+                    </div>
                     {localStorage.getItem('skilltwin_token') && (
                       <button className="roadmap-regenerate-btn" type="button" onClick={() => syncRoadmap(true)} disabled={roadmapLoading}>
                         <RefreshCw size={14} className={roadmapLoading ? 'spin-icon' : ''} />
@@ -515,23 +540,27 @@ export default function Dashboard() {
                 <div className="roadmap-timeline">
                   {roadmapItems.map((item, idx) => {
                     const isDone = item.status === 'completed';
+                    const isInProgress = item.status === 'in-progress';
                     return (
-                      <div key={item.id} className={`roadmap-step-card ${isDone ? 'completed-step' : ''}`}>
+                      <div key={item.id} className={`roadmap-step-card ${isDone ? 'completed-step' : ''} ${isInProgress ? 'in-progress-step' : ''}`}>
                         <div className="step-timeline-node">
                           <button 
                             className={`node-check-btn ${isDone ? 'checked' : ''}`}
                             onClick={() => handleRoadmapMilestone(item)}
-                            title={isDone ? 'Mark milestone as planned' : 'Mark milestone as completed'}
+                            disabled={roadmapLoading}
+                            title={isDone ? 'Reopen milestone' : isInProgress ? 'Mark milestone as completed' : 'Start milestone'}
+                            aria-label={`${isDone ? 'Reopen' : isInProgress ? 'Complete' : 'Start'} ${item.title}`}
                           >
-                            {isDone ? <Check size={16} /> : <Circle size={16} />}
+                            {isDone ? <Check size={16} /> : isInProgress ? <Play size={13} /> : <Circle size={16} />}
                           </button>
                           {idx !== roadmapItems.length - 1 && <div className="timeline-connector-line"></div>}
                         </div>
 
                         <div className="step-content-card">
-                          <div className="step-time-badge">{item.week}</div>
+                          <div className="step-time-badge">{item.week} · {isDone ? 'Completed' : isInProgress ? 'In progress' : 'Pending'}</div>
                           <h3>{item.title}</h3>
                           <p>{item.description}</p>
+                          {item.completedAt && <p className="roadmap-completed-date">Completed {new Date(item.completedAt).toLocaleDateString()}</p>}
                           <div className="step-skill-chips">
                             {item.skills.map(skill => (
                               <span key={skill} className="skill-chip">{skill}</span>

@@ -1,5 +1,12 @@
 const mysql = require("mysql2/promise");
 
+const ssl = process.env.DB_SSL === "true"
+  ? {
+      rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false",
+      ...(process.env.DB_SSL_CA ? { ca: require("fs").readFileSync(process.env.DB_SSL_CA, "utf8") } : {})
+    }
+  : undefined;
+
 const db = mysql.createPool({
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "root",
@@ -9,7 +16,9 @@ const db = mysql.createPool({
 
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 100,
+  connectTimeout: 10000,
+  ...(ssl ? { ssl } : {})
 });
 
 module.exports = db;

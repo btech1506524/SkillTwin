@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
+// Same-origin by default: production proxies /api to the backend, while Vite
+// proxies /api to the local backend during development.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Create Axios instance
 export const apiClient = axios.create({
@@ -33,9 +35,8 @@ apiClient.interceptors.request.use((config) => {
 // API Service Methods
 export const apiService = {
   // AUTH
-  // ERR-012 FIX: Distinguishes between network failures (backend offline → return null)
-  // and HTTP errors (backend online but auth failed → return { success: false, message })
-  // This lets AuthContext decide whether to show an error or use the demo fallback.
+  // Distinguish HTTP authentication errors from transport failures. A failed
+  // connection must never be treated as a successful account login.
   login: async (email, password) => {
     try {
       const response = await apiClient.post('/auth/login', { email, password });
@@ -48,9 +49,7 @@ export const apiService = {
           message: err.response.data?.message || 'Invalid credentials.'
         };
       }
-      // Network error — backend may be offline; caller can use demo fallback
-      console.warn('Backend offline, using fallback auth:', err.message);
-      return null;
+      return { success: false, message: 'Unable to reach SkillTwin. Check your connection and try again.' };
     }
   },
 
@@ -66,8 +65,7 @@ export const apiService = {
           message: err.response.data?.message || 'Registration failed.'
         };
       }
-      console.warn('Backend offline, using fallback registration:', err.message);
-      return null;
+      return { success: false, message: 'Unable to reach SkillTwin. Check your connection and try again.' };
     }
   },
 
@@ -177,6 +175,15 @@ export const apiService = {
       return response.data;
     } catch (err) {
       return { success: false, message: err.response?.data?.message || 'Unable to load your learning roadmap.' };
+    }
+  },
+
+  getLearningProgress: async () => {
+    try {
+      const response = await apiClient.get('/roadmap/progress');
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load your progress.' };
     }
   },
 
