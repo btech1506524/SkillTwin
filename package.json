@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "node --watch server/server.js",
+    "server": "npm --prefix backend run dev",
     "backend": "node backend/server.js",
     "db:check": "node check-db.cjs"
   },

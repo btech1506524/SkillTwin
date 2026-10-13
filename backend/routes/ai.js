@@ -14,6 +14,14 @@ router.post("/simulate", authMiddleware, async (req, res) => {
 
   try {
 
+    // Dashboard scenario simulation. Keep the scoring model deterministic so
+    // the displayed projection is reproducible and can run without role seed data.
+    if (Array.isArray(req.body.addedSkills)) {
+      const scenarioBoosts = { "LeetCode 150": 9, "Docker CI/CD": 11, "DBMS Indexing": 7, "System Design Mini": 12 };
+      const totalBoost = Math.min(100 - Number(req.body.currentScore || 0), req.body.addedSkills.reduce((sum, item) => sum + (scenarioBoosts[item] || 5), 0));
+      return res.json({ success: true, totalBoost: Math.max(0, totalBoost), targetRole: req.body.targetRole || "Software Developer" });
+    }
+
     const {
       role_id,
       hours_per_week = 10
@@ -258,6 +266,10 @@ router.post(
 
       res.json({
         success: true,
+        matchPercentage: atsScore,
+        strengths,
+        gaps: weaknesses,
+        recommendedKeywords: recommendations,
 
         analysis: {
           atsScore,

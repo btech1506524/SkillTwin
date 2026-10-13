@@ -27,6 +27,13 @@ const DEFAULT_DEMO_STUDENT = {
   completedMilestones: ['milestone-1', 'milestone-2']
 };
 
+const normalizeUser = (user) => ({
+  ...DEFAULT_DEMO_STUDENT,
+  ...user,
+  skills: { ...DEFAULT_DEMO_STUDENT.skills, ...(user?.skills || {}) },
+  completedMilestones: user?.completedMilestones || []
+});
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
@@ -56,7 +63,7 @@ export function AuthProvider({ children }) {
       if (apiRes.token) {
         localStorage.setItem('skilltwin_token', apiRes.token);
       }
-      setUser(apiRes.user);
+      setUser(normalizeUser(apiRes.user));
       return { success: true };
     }
 
@@ -76,15 +83,7 @@ export function AuthProvider({ children }) {
   };
 
   const loginDemo = async () => {
-    try {
-      const apiRes = await apiService.login('sanjay.cse@student.edu', 'password123');
-      if (apiRes && apiRes.success && apiRes.user) {
-        if (apiRes.token) localStorage.setItem('skilltwin_token', apiRes.token);
-        setUser(apiRes.user);
-        return { success: true };
-      }
-    } catch {}
-
+    localStorage.removeItem('skilltwin_token');
     setUser(DEFAULT_DEMO_STUDENT);
     return { success: true };
   };
@@ -102,7 +101,7 @@ export function AuthProvider({ children }) {
 
     if (apiRes && apiRes.success && apiRes.user) {
       if (apiRes.token) localStorage.setItem('skilltwin_token', apiRes.token);
-      setUser(apiRes.user);
+      setUser(normalizeUser(apiRes.user));
       return { success: true };
     }
 

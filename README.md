@@ -1,69 +1,45 @@
-# SkillTwin AI — Career Intelligence Platform
+# SkillTwin AI
 
-SkillTwin AI is a personalized career intelligence and placement-readiness platform designed for engineering students (Sem 5 CSE curriculum benchmarks). It compares student competencies against tech industry roles, visualizes skill gaps, simulates growth trajectories, and generates tailored preparation roadmaps.
+SkillTwin is a career-readiness dashboard for engineering students. It includes a React/Vite client and an Express API backed by MySQL. The dashboard tracks skills, target roles and roadmap milestones, provides deterministic career scenario projections, and offers a keyword-based resume review (not an external generative AI service).
 
----
+## Requirements
 
-## 🏗️ Architecture Overview
+- Node.js 18 or newer
+- MySQL 8 (for persistent accounts)
 
-The codebase consists of:
-1. **Frontend (`/src`)**: Single Page Application built with React 18, Vite, React Router v7, and CSS glassmorphism styling.
-2. **Primary Application Server (`/server`)**: Node.js Express REST API (ES Modules) running on port `5000`. Handles student profile state, authentication, AI career simulations, and resume competency scanning.
-3. **Relational MySQL Server (`/backend`)**: Optional persistence backend running on port `5001`. Provides MySQL connection pooling, user registration, authentication, and schema queries.
+## Start the app
 
----
+1. Install client and API dependencies:
 
-## 🚀 Quick Start
+   ```bash
+   npm install
+   npm --prefix backend install
+   ```
 
-### 1. Install Dependencies
-```bash
-# Frontend
-npm install
+2. Create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database and seeds the career roles and skills.
 
-# Primary API Server
-cd server
-npm install
-cd ..
+3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET`.
 
-# (Optional) MySQL Backend
-cd backend
-npm install
-cd ..
-```
+4. Start the API and client in separate terminals:
 
-### 2. Configure Environment Variables
-Copy or adjust `.env` files in `server/` and `backend/`:
-- `server/.env`:
-  ```env
-  PORT=5000
-  JWT_SECRET=<your-secure-random-jwt-secret>
-  CLIENT_ORIGIN=http://localhost:5173
-  ```
-- `backend/.env` (if using MySQL):
-  ```env
-  PORT=5001
-  JWT_SECRET=<your-backend-jwt-secret>
-  CLIENT_ORIGIN=http://localhost:5173
-  DB_HOST=localhost
-  DB_USER=root
-  DB_PASS=<your-mysql-password>
-  DB_NAME=skilltwin
-  DB_PORT=3306
-  ```
+   ```bash
+   npm run server
+   npm run dev
+   ```
 
-### 3. Run the Application
-In separate terminal windows:
-```bash
-# Terminal 1: Primary API Server (port 5000)
-npm run server
+   The API listens on port 5000 and Vite on port 5173. The frontend currently uses `http://localhost:5000/api` in `src/services/api.js`.
 
-# Terminal 2: Vite Frontend Client (port 5173)
-npm run dev
-```
+## Demo access
 
-Visit [http://localhost:5173](http://localhost:5173) in your browser.
+Choose **Instant Demo Access** on Login or Signup, or use the home page demo action. Demo mode is local and works without an API or database. Changes made in demo mode are stored in that browser's local storage, not in MySQL. For persistent data, create an account and sign in while the API and database are available.
 
----
+## API overview
 
-## 🧪 Quick Evaluation (Evaluator / Demo Mode)
-You can launch instant demo mode with 1-click on the Login/Signup pages or Home page. This preloads complete Sem 5 CSE profile benchmarks for **Sanjay Kumar (NIT, 8.6 CGPA)** with interactive skill sliders and AI simulator scenarios.
+- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/profile`
+- `GET /api/student/profile`, `GET|PUT /api/student/skills`
+- `GET|PUT /api/student/target-role`, `GET /api/student/readiness`
+- `GET|PUT /api/student/milestones`
+- `POST /api/ai/simulate`, `POST /api/ai/analyze-resume`
+- `GET /api/health`
+
+The root `npm run build` command builds the frontend for production.

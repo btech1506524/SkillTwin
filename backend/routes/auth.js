@@ -6,6 +6,43 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+const defaultSkills = [
+  ["Data Structures & Algorithms", 65, 85, "Core CS"], ["Object-Oriented Programming (Java/C++)", 75, 80, "Core CS"],
+  ["DBMS & SQL Queries", 80, 75, "Database"], ["Operating Systems & Linux", 60, 70, "Core CS"], ["Computer Networks", 50, 65, "Core CS"],
+  ["React.js & Frontend", 72, 70, "Development"], ["Node.js & REST APIs", 55, 75, "Development"], ["Git, Docker & CI/CD", 35, 60, "DevOps"],
+  ["System Design Fundamentals", 30, 65, "Architecture"]
+];
+
+const toSkillMap = (rows = []) => {
+  const values = new Map(rows.map(row => [row.skill_name, Number(row.proficiency_score)]));
+  return Object.fromEntries(defaultSkills.map(([name, initial, required, category]) => [
+    name, { current: values.has(name) ? values.get(name) : initial, required, category }
+  ]));
+};
+const scoreSkills = skills => {
+  const entries = Object.values(skills);
+  const target = entries.reduce((sum, skill) => sum + skill.required, 0);
+  return target ? Math.round(entries.reduce((sum, skill) => sum + Math.min(skill.current, skill.required), 0) / target * 100) : 0;
+};
+
+async function initializeStudent(userId, targetRole) {
+  for (const [skillName, score] of defaultSkills) {
+    await db.query(
+      `INSERT INTO user_skills (user_id, skill_id, proficiency_level, proficiency_score)
+       SELECT ?, skill_id, ?, ? FROM skills WHERE skill_name = ?
+       ON DUPLICATE KEY UPDATE proficiency_score = VALUES(proficiency_score)`,
+      [userId, score >= 75 ? "Advanced" : score >= 50 ? "Intermediate" : "Beginner", score, skillName]
+    );
+  }
+  const [roles] = await db.query("SELECT role_id FROM career_roles WHERE role_name = ?", [targetRole]);
+  if (roles.length) {
+    await db.query(
+      "INSERT INTO roadmaps (user_id, role_id, roadmap_title, description) VALUES (?, ?, ?, ?)",
+      [userId, roles[0].role_id, `${targetRole} Career Roadmap`, `Personalized roadmap for ${targetRole}`]
+    );
+  }
+}
+
 // ===============================
 // REGISTER
 // ERR-003 FIX: Now accepts 'name' (frontend field) in addition to 'full_name' (legacy field)
@@ -54,8 +91,8 @@ router.post("/register", async (req, res) => {
 
     const [result] = await db.query(
       `INSERT INTO users
-      (full_name, email, password_hash, phone, college, branch, graduation_year)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      (full_name, email, password_hash, phone, college, branch, graduation_year, semester, target_role)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         studentName,
         email,
@@ -63,9 +100,13 @@ router.post("/register", async (req, res) => {
         phone || null,
         college || null,
         branch || null,
-        graduation_year || null
+        graduation_year || null,
+        semester || 5,
+        targetRole || "Software Developer"
       ]
     );
+
+    await initializeStudent(result.insertId, targetRole || "Software Developer");
 
     if (!process.env.JWT_SECRET) {
       console.error("JWT_SECRET is missing in .env");
@@ -93,8 +134,8 @@ router.post("/register", async (req, res) => {
         targetRole: targetRole || "Software Developer",
         college: college || "",
         cgpa: "0.0",
-        readinessScore: 68,
-        skills: {},
+        readinessScore: scoreSkills(toSkillMap()),
+        skills: toSkillMap(),
         completedMilestones: []
       }
     });
@@ -158,6 +199,12 @@ router.post("/login", async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    const [skillRows] = await db.query(
+      `SELECT s.skill_name, s.category, us.proficiency_score FROM user_skills us
+       JOIN skills s ON s.skill_id = us.skill_id WHERE us.user_id = ?`, [user.user_id]
+    );
+    const [milestoneRows] = await db.query("SELECT milestone_key FROM user_milestones WHERE user_id = ?", [user.user_id]);
+
     // ERR-026 FIX: Return 'id' and 'name' instead of 'user_id' and 'full_name'
     // so the frontend AuthContext and Dashboard can consume them correctly.
     res.json({
@@ -173,9 +220,9 @@ router.post("/login", async (req, res) => {
         targetRole: user.target_role || "Software Developer",
         college: user.college || "",
         cgpa: user.cgpa || "0.0",
-        readinessScore: user.readiness_score || 68,
-        skills: {},
-        completedMilestones: []
+        readinessScore: scoreSkills(toSkillMap(skillRows)),
+        skills: toSkillMap(skillRows),
+        completedMilestones: milestoneRows.map(row => row.milestone_key)
       }
     });
 

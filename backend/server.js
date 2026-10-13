@@ -21,10 +21,7 @@ const PORT =
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173"
-    ]
+    origin: (process.env.CLIENT_ORIGIN || "http://localhost:5173").split(",").map(value => value.trim())
   })
 );
 
@@ -64,15 +61,15 @@ app.get("/api/health", async (req, res) => {
         auth: [
           "/api/auth/login",
           "/api/auth/register",
-          "/api/auth/demo",
-          "/api/auth/me"
+          "/api/auth/profile"
         ],
 
         student: [
           "/api/student/profile",
           "/api/student/skills",
           "/api/student/target-role",
-          "/api/student/readiness"
+          "/api/student/readiness",
+          "/api/student/milestones"
         ],
 
         ai: [
@@ -167,8 +164,7 @@ app.listen(PORT, () => {
   console.log("Authentication:");
   console.log("POST /api/auth/register");
   console.log("POST /api/auth/login");
-  console.log("POST /api/auth/demo");
-  console.log("GET  /api/auth/me");
+  console.log("GET  /api/auth/profile");
   console.log("");
   console.log("Student:");
   console.log("GET /api/student/profile");

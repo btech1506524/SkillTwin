@@ -107,14 +107,14 @@ router.put("/skills", authMiddleware, async (req, res) => {
 
   try {
 
-    const {
-      skill_id,
-      proficiency_level,
-      proficiency_score,
-      years_experience
-    } = req.body;
+    const { skill_id, skillName, proficiency_level, proficiency_score, currentLevel, years_experience } = req.body;
+    let resolvedSkillId = skill_id;
+    if (!resolvedSkillId && skillName) {
+      const [matches] = await db.query("SELECT skill_id FROM skills WHERE skill_name = ?", [skillName]);
+      if (matches.length) resolvedSkillId = matches[0].skill_id;
+    }
 
-    if (!skill_id) {
+    if (!resolvedSkillId) {
       return res.status(400).json({
         success: false,
         message: "skill_id is required."
@@ -123,7 +123,7 @@ router.put("/skills", authMiddleware, async (req, res) => {
 
     const [skill] = await db.query(
       "SELECT skill_id FROM skills WHERE skill_id = ?",
-      [skill_id]
+      [resolvedSkillId]
     );
 
     if (skill.length === 0) {
@@ -149,9 +149,9 @@ router.put("/skills", authMiddleware, async (req, res) => {
           years_experience = VALUES(years_experience)`,
       [
         req.user.user_id,
-        skill_id,
-        proficiency_level || "Beginner",
-        proficiency_score || 0,
+        resolvedSkillId,
+        proficiency_level || ((proficiency_score ?? currentLevel ?? 0) >= 75 ? "Advanced" : (proficiency_score ?? currentLevel ?? 0) >= 50 ? "Intermediate" : "Beginner"),
+        proficiency_score ?? currentLevel ?? 0,
         years_experience || 0
       ]
     );
@@ -235,7 +235,12 @@ router.put("/target-role", authMiddleware, async (req, res) => {
 
   try {
 
-    const { role_id } = req.body;
+    let { role_id } = req.body;
+    const { targetRole } = req.body;
+    if (!role_id && targetRole) {
+      const [matches] = await db.query("SELECT role_id FROM career_roles WHERE role_name = ?", [targetRole]);
+      if (matches.length) role_id = matches[0].role_id;
+    }
 
     if (!role_id) {
       return res.status(400).json({
@@ -257,6 +262,8 @@ router.put("/target-role", authMiddleware, async (req, res) => {
     }
 
     const role = roles[0];
+
+    await db.query("UPDATE users SET target_role = ? WHERE user_id = ?", [role.role_name, req.user.user_id]);
 
     const [existing] = await db.query(
       `SELECT roadmap_id
@@ -317,6 +324,38 @@ router.put("/target-role", authMiddleware, async (req, res) => {
   }
 });
 
+
+// =====================================================
+// GET STUDENT READINESS
+// GET /api/student/readiness
+// =====================================================
+
+router.put("/milestones", authMiddleware, async (req, res) => {
+  try {
+    const { milestoneId } = req.body;
+    if (!milestoneId) return res.status(400).json({ success: false, message: "milestoneId is required." });
+    const [existing] = await db.query("SELECT milestone_id FROM user_milestones WHERE user_id = ? AND milestone_key = ?", [req.user.user_id, milestoneId]);
+    if (existing.length) {
+      await db.query("DELETE FROM user_milestones WHERE milestone_id = ?", [existing[0].milestone_id]);
+      return res.json({ success: true, completed: false });
+    }
+    await db.query("INSERT INTO user_milestones (user_id, milestone_key) VALUES (?, ?)", [req.user.user_id, milestoneId]);
+    res.json({ success: true, completed: true });
+  } catch (error) {
+    console.error("Milestone update error:", error);
+    res.status(500).json({ success: false, message: "Unable to update milestone." });
+  }
+});
+
+router.get("/milestones", authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT milestone_key FROM user_milestones WHERE user_id = ? ORDER BY milestone_key", [req.user.user_id]);
+    res.json({ success: true, completedMilestones: rows.map(row => row.milestone_key) });
+  } catch (error) {
+    console.error("Milestone fetch error:", error);
+    res.status(500).json({ success: false, message: "Unable to fetch milestones." });
+  }
+});
 
 // =====================================================
 // GET STUDENT READINESS
