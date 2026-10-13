@@ -2404,6 +2404,10 @@
 
 /* TAB 2: ROADMAP PANE */
 .roadmap-progress-indicator {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   padding: 6px 14px;
   border-radius: 20px;
   background: rgba(124, 58, 237, 0.12);
@@ -2412,6 +2416,23 @@
   font-size: 13px;
   font-weight: 700;
 }
+
+.roadmap-regenerate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid rgba(196, 181, 253, .28);
+  border-radius: 12px;
+  color: #e2d9ff;
+  background: rgba(124, 58, 237, .14);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.roadmap-regenerate-btn:disabled { opacity: .6; cursor: wait; }
+.roadmap-loading { padding: 10px 0; color: #aab8cc; }
 
 .roadmap-timeline {
   display: flex;

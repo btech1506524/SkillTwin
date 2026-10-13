@@ -24,6 +24,9 @@ export default function Dashboard() {
   const [resumeText, setResumeText] = useState('');
   const [resumeAnalysis, setResumeAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [roadmapItems, setRoadmapItems] = useState([]);
+  const [roadmapLoading, setRoadmapLoading] = useState(false);
+  const [roadmapError, setRoadmapError] = useState('');
 
   useEffect(() => {
     refreshCareerReadiness();
@@ -62,7 +65,7 @@ export default function Dashboard() {
   const dbmsLevel = skillsObj['DBMS & SQL Queries']?.current || 80;
   const devopsLevel = skillsObj['Git, Docker & CI/CD']?.current || 35;
 
-  const roadmapItems = [
+  const fallbackRoadmapItems = [
     {
       id: 'milestone-1',
       week: 'Weeks 1 - 2',
@@ -96,6 +99,53 @@ export default function Dashboard() {
       status: student.completedMilestones?.includes('milestone-4') ? 'completed' : 'pending'
     }
   ];
+
+  const syncRoadmap = async (regenerate = false) => {
+    if (!localStorage.getItem('skilltwin_token')) {
+      setRoadmapItems(fallbackRoadmapItems);
+      setRoadmapError('');
+      return;
+    }
+    setRoadmapLoading(true);
+    setRoadmapError('');
+    const response = regenerate
+      ? await apiService.generateLearningRoadmap()
+      : await apiService.getLearningRoadmap();
+    if (response?.success && response.roadmap) {
+      setRoadmapItems(response.roadmap.milestones.map(item => ({
+        id: item.id,
+        week: `Step ${item.sequence}`,
+        title: item.title,
+        description: `${item.description} ${item.outcome}`,
+        skills: [item.skillName],
+        status: item.status === 'Completed' ? 'completed' : item.status === 'In Progress' ? 'in-progress' : 'pending'
+      })));
+    } else {
+      setRoadmapError(response?.message || 'Unable to load your learning roadmap.');
+    }
+    setRoadmapLoading(false);
+  };
+
+  useEffect(() => {
+    syncRoadmap();
+  }, [user?.id, student.targetRole]);
+
+  const handleRoadmapMilestone = async (item) => {
+    if (!localStorage.getItem('skilltwin_token')) {
+      await toggleMilestone?.(item.id);
+      return;
+    }
+    const status = item.status === 'completed' ? 'Planned' : 'Completed';
+    const response = await apiService.updateRoadmapMilestone(item.id, status);
+    if (response?.success) await syncRoadmap();
+    else setRoadmapError(response?.message || 'Unable to update this milestone.');
+  };
+
+  const handleTargetRoleChange = async (event) => {
+    const nextRole = event.target.value;
+    await updateTargetRole?.(nextRole);
+    await syncRoadmap();
+  };
 
   // ERR-022 FIX: Deterministic boost calculation based on scenario definitions
   const SCENARIO_BOOSTS = {
@@ -213,7 +263,7 @@ export default function Dashboard() {
                 <Target size={16} className="role-icon" />
                 <select 
                   value={student.targetRole || 'Software Developer'} 
-                  onChange={(e) => updateTargetRole && updateTargetRole(e.target.value)}
+                  onChange={handleTargetRoleChange}
                 >
                   <option value="Software Developer">Software Developer (SDE)</option>
                   <option value="Frontend Developer">Frontend Developer</option>
@@ -444,13 +494,23 @@ export default function Dashboard() {
               <div className="tab-pane roadmap-pane">
                 <div className="pane-header">
                   <div>
-                    <h2>Semester 5 Placement Milestone Plan</h2>
-                    <p>Actionable weekly checklist structured around Sem 5 university exams and upcoming on-campus placements.</p>
+                    <h2>{localStorage.getItem('skilltwin_token') ? `${student.targetRole || 'Career'} Learning Roadmap` : 'Semester 5 Placement Milestone Plan'}</h2>
+                    <p>{localStorage.getItem('skilltwin_token') ? 'Ordered learning milestones generated from your role requirements and current skill gaps.' : 'Actionable weekly checklist structured around Sem 5 university exams and upcoming on-campus placements.'}</p>
                   </div>
                   <div className="roadmap-progress-indicator">
-                    <span>Milestones Completed: {student.completedMilestones?.length || 0} / {roadmapItems.length}</span>
+                    <span>Milestones Completed: {roadmapItems.filter(item => item.status === 'completed').length} / {roadmapItems.length}</span>
+                    {localStorage.getItem('skilltwin_token') && (
+                      <button className="roadmap-regenerate-btn" type="button" onClick={() => syncRoadmap(true)} disabled={roadmapLoading}>
+                        <RefreshCw size={14} className={roadmapLoading ? 'spin-icon' : ''} />
+                        {roadmapLoading ? 'Updating…' : 'Regenerate from skill gaps'}
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {roadmapError && <p className="assessment-error" role="alert">{roadmapError}</p>}
+                {roadmapLoading && !roadmapItems.length && <p className="roadmap-loading" role="status">Building your personalized roadmap…</p>}
+                {!roadmapLoading && !roadmapError && !roadmapItems.length && <p className="roadmap-loading">You currently meet every role skill target. Regenerate after updating your skill profile to refresh this plan.</p>}
 
                 <div className="roadmap-timeline">
                   {roadmapItems.map((item, idx) => {
@@ -460,8 +520,8 @@ export default function Dashboard() {
                         <div className="step-timeline-node">
                           <button 
                             className={`node-check-btn ${isDone ? 'checked' : ''}`}
-                            onClick={() => toggleMilestone && toggleMilestone(item.id)}
-                            title="Click to toggle milestone completion"
+                            onClick={() => handleRoadmapMilestone(item)}
+                            title={isDone ? 'Mark milestone as planned' : 'Mark milestone as completed'}
                           >
                             {isDone ? <Check size={16} /> : <Circle size={16} />}
                           </button>

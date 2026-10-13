@@ -169,5 +169,32 @@ export const apiService = {
     } catch (err) {
       return { success: false, message: err.response?.data?.message || 'Unable to load assessment history.' };
     }
+  },
+
+  getLearningRoadmap: async () => {
+    try {
+      const response = await apiClient.get('/roadmap');
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load your learning roadmap.' };
+    }
+  },
+
+  generateLearningRoadmap: async () => {
+    try {
+      const response = await apiClient.post('/roadmap/generate');
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to generate your learning roadmap.' };
+    }
+  },
+
+  updateRoadmapMilestone: async (milestoneId, status) => {
+    try {
+      const response = await apiClient.put(`/roadmap/milestones/${milestoneId}`, { status });
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to update this milestone.' };
+    }
   }
 };

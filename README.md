@@ -16,7 +16,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm --prefix backend install
    ```
 
-2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds the skills and roles, and installs the assessment catalogue. For an existing database, apply `backend/migrations/001_student_readiness.sql` and then `backend/migrations/002_assessments.sql`. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
+2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds the skills and roles, and installs the assessment catalogue and personalized roadmap tables. For an existing database, apply migrations `001_student_readiness.sql`, `002_assessments.sql`, and `003_personalized_roadmaps.sql` in order. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
 
 3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET`.
 
@@ -42,6 +42,7 @@ Choose **Instant Demo Access** on Login or Signup, or use the home page demo act
 - `POST /api/ai/simulate`, `POST /api/ai/analyze-resume`
 - `GET /api/assessments`, `GET /api/assessments/:assessmentId`
 - `POST /api/assessments/:assessmentId/submit`, `GET /api/assessments/results`, `GET /api/assessments/results/:resultId`
+- `GET /api/roadmap`, `POST /api/roadmap/generate`, `PUT /api/roadmap/milestones/:milestoneId`
 - `GET /api/health`
 
 ## Project progress
@@ -54,11 +55,21 @@ Choose **Instant Demo Access** on Login or Signup, or use the home page demo act
 - Assessment results are diagnostic only and do not silently change the student's self-reported skill levels or career-readiness score.
 - The initial seeded catalogue contains a 10-question Computer Science Fundamentals assessment.
 
-The migration upgrades the original assessment tables in place and preserves their rows. A fresh database created from `backend/schema.sql` includes the assessment tables and starter assessment.
+The assessment migration upgrades the original assessment tables in place and preserves their rows. A fresh database created from `backend/schema.sql` includes the assessment tables and starter assessment.
 
-### Next phase — Phase 11: Personalized learning roadmap
+### Phase 11 — Personalized learning roadmap (implemented)
 
-Generate a persistent, user-specific roadmap from selected career-role skill gaps. Prioritize missing and below-target skills, create ordered milestones with clear outcomes, and let students track progress. Assessment history can inform prioritization, while leaving skill proficiency unchanged unless the student explicitly updates it.
+- Generates and saves an ordered learning roadmap for the student's selected role.
+- Prioritizes each missing or below-target skill using gap size and role importance, and estimates effort for each milestone.
+- Each milestone has a measurable proficiency outcome, gap context, and persisted planned/completed status.
+- The dashboard loads the current saved plan, tracks completion, and can regenerate it after skill profile changes.
+- Changing target roles generates a roadmap for the new role. Assessment results remain diagnostic and do not silently change reported skill levels.
+
+The roadmap migration adds `roadmap_milestones` and a current-snapshot marker while retaining existing roadmap rows.
+
+### Next phase — Phase 12: Progress tracking
+
+Add a broader progress view across roadmap and skill development: dated progress history, completion trends, and evidence of how skill updates move readiness toward the selected role. Keep completion records tied to the authenticated student and distinguish self-reported changes from assessment results.
 
 The root `npm run build` command builds the frontend for production.
 

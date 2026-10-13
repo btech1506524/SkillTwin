@@ -139,7 +139,9 @@ export function AuthProvider({ children }) {
     try {
       const response = await apiService.updateTargetRole(newRole);
       if (response?.success) await refreshCareerReadiness();
+      return response;
     } catch {}
+    return null;
   };
 
   const refreshCareerReadiness = useCallback(async () => {
