@@ -20,12 +20,16 @@ function validateProductionConfig() {
   if (secret.length < 32 || /replace|change|example|secret/i.test(secret)) {
     throw new Error("Production requires a randomly generated JWT_SECRET of at least 32 characters.");
   }
-  if (!process.env.CLIENT_ORIGIN || process.env.CLIENT_ORIGIN.split(",").some(origin => origin.trim() === "*")) {
+  const configuredOrigins = (process.env.CLIENT_ORIGIN || "").split(",").map(origin => origin.trim()).filter(Boolean);
+  if (!configuredOrigins.length || configuredOrigins.includes("*")) {
     throw new Error("Production requires an explicit CLIENT_ORIGIN allowlist; wildcard origins are not supported.");
   }
-  if (process.env.CLIENT_ORIGIN.split(",").some(origin => {
-    try { return new URL(origin.trim()).protocol !== "https:"; } catch { return true; }
-  })) throw new Error("Production CLIENT_ORIGIN entries must use HTTPS.");
+  if (configuredOrigins.some(origin => {
+    try {
+      const parsed = new URL(origin);
+      return parsed.protocol !== "https:" || parsed.origin !== origin || parsed.username || parsed.password;
+    } catch { return true; }
+  })) throw new Error("Production CLIENT_ORIGIN entries must be exact HTTPS origins without paths or credentials.");
   if (process.env.DB_SSL !== "true") throw new Error("Production database connections must enable DB_SSL=true.");
   if (process.env.DB_SSL_REJECT_UNAUTHORIZED === "false") {
     throw new Error("Production database TLS must verify the server certificate; DB_SSL_REJECT_UNAUTHORIZED=false is not supported.");
@@ -33,6 +37,10 @@ function validateProductionConfig() {
   for (const key of ["DB_HOST", "DB_USER", "DB_PASS", "DB_NAME"]) {
     if (!process.env[key]) throw new Error(`Production requires ${key} to be configured.`);
   }
+  const port = Number(process.env.PORT || 5001);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be a valid TCP port number.");
+  const databasePort = Number(process.env.DB_PORT || 3306);
+  if (!Number.isInteger(databasePort) || databasePort < 1 || databasePort > 65535) throw new Error("DB_PORT must be a valid TCP port number.");
 }
 
 validateProductionConfig();

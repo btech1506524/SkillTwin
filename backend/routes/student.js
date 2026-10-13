@@ -192,10 +192,13 @@ router.put("/skills", authMiddleware, async (req, res) => {
 
   try {
 
-    const { skill_id, skillName, proficiency_level, proficiency_score, currentLevel, years_experience } = req.body;
+    const { skill_id, skillName, proficiency_level, proficiency_score, currentLevel, years_experience } = req.body || {};
     let resolvedSkillId = skill_id;
     if (!resolvedSkillId && skillName) {
-      const [matches] = await db.query("SELECT skill_id FROM skills WHERE skill_name = ?", [skillName]);
+      if (typeof skillName !== "string" || !skillName.trim() || skillName.length > 160) {
+        return res.status(400).json({ success: false, message: "skillName must be a valid skill name." });
+      }
+      const [matches] = await db.query("SELECT skill_id FROM skills WHERE skill_name = ?", [skillName.trim()]);
       if (matches.length) resolvedSkillId = matches[0].skill_id;
     }
 
@@ -204,6 +207,10 @@ router.put("/skills", authMiddleware, async (req, res) => {
         success: false,
         message: "A valid skill_id or skillName is required."
       });
+    }
+    resolvedSkillId = Number(resolvedSkillId);
+    if (!Number.isSafeInteger(resolvedSkillId) || resolvedSkillId < 1) {
+      return res.status(400).json({ success: false, message: "A valid skill_id or skillName is required." });
     }
 
     const score = Number(proficiency_score ?? currentLevel ?? 0);
@@ -215,7 +222,7 @@ router.put("/skills", authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: "Years of experience must be between 0 and 80." });
     }
     const level = proficiency_level || (score >= 100 ? "Expert" : score >= 75 ? "Advanced" : score >= 50 ? "Intermediate" : "Beginner");
-    if (!Object.hasOwn(levelScores, level)) {
+    if (typeof level !== "string" || !Object.hasOwn(levelScores, level)) {
       return res.status(400).json({ success: false, message: "Invalid proficiency level." });
     }
 
@@ -334,11 +341,13 @@ router.get("/target-role", authMiddleware, async (req, res) => {
 // =====================================================
 
 router.put("/target-role", authMiddleware, async (req, res) => {
-
+  let connection;
   try {
-
-    let { role_id } = req.body;
-    const { targetRole } = req.body;
+    let { role_id } = req.body || {};
+    const { targetRole } = req.body || {};
+    if (targetRole !== undefined && (typeof targetRole !== "string" || targetRole.length > 120)) {
+      return res.status(400).json({ success: false, message: "targetRole must be a valid role name." });
+    }
     if (!role_id && targetRole) {
       const [matches] = await db.query("SELECT role_id FROM career_roles WHERE role_name = ?", [targetRole]);
       if (matches.length) role_id = matches[0].role_id;
@@ -351,9 +360,14 @@ router.put("/target-role", authMiddleware, async (req, res) => {
       });
     }
 
+    const normalizedRoleId = Number(role_id);
+    if (!Number.isSafeInteger(normalizedRoleId) || normalizedRoleId < 1) {
+      return res.status(400).json({ success: false, message: "A valid role_id is required." });
+    }
+
     const [roles] = await db.query(
       "SELECT * FROM career_roles WHERE role_id = ?",
-      [role_id]
+      [normalizedRoleId]
     );
 
     if (roles.length === 0) {
@@ -365,48 +379,10 @@ router.put("/target-role", authMiddleware, async (req, res) => {
 
     const role = roles[0];
 
-    await db.query("UPDATE users SET target_role = ? WHERE user_id = ?", [role.role_name, req.user.user_id]);
-
-    const [existing] = await db.query(
-      `SELECT roadmap_id
-       FROM roadmaps
-       WHERE user_id = ?
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [req.user.user_id]
-    );
-
-    if (existing.length > 0) {
-
-      await db.query(
-        `UPDATE roadmaps
-         SET role_id = ?
-         WHERE roadmap_id = ?`,
-        [role_id, existing[0].roadmap_id]
-      );
-
-    } else {
-
-      await db.query(
-        `INSERT INTO roadmaps
-          (
-            user_id,
-            role_id,
-            roadmap_title,
-            description,
-            status
-          )
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-          req.user.user_id,
-          role_id,
-          `${role.role_name} Career Roadmap`,
-          `Personalized roadmap for ${role.role_name}`,
-          "Not Started"
-        ]
-      );
-
-    }
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+    await connection.query("UPDATE users SET target_role = ? WHERE user_id = ?", [role.role_name, req.user.user_id]);
+    await connection.commit();
 
     res.json({
       success: true,
@@ -415,6 +391,9 @@ router.put("/target-role", authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
+    if (connection) {
+      try { await connection.rollback(); } catch {}
+    }
 
     console.error("Target role update error:", error);
 
@@ -423,6 +402,8 @@ router.put("/target-role", authMiddleware, async (req, res) => {
       message: "Server error."
     });
 
+  } finally {
+    connection?.release();
   }
 });
 
@@ -434,8 +415,8 @@ router.put("/target-role", authMiddleware, async (req, res) => {
 
 router.put("/milestones", authMiddleware, async (req, res) => {
   try {
-    const { milestoneId } = req.body;
-    if (!milestoneId) return res.status(400).json({ success: false, message: "milestoneId is required." });
+    const { milestoneId } = req.body || {};
+    if (typeof milestoneId !== "string" || !milestoneId.trim() || milestoneId.length > 80) return res.status(400).json({ success: false, message: "milestoneId must be between 1 and 80 characters." });
     const [existing] = await db.query("SELECT milestone_id FROM user_milestones WHERE user_id = ? AND milestone_key = ?", [req.user.user_id, milestoneId]);
     if (existing.length) {
       await db.query("DELETE FROM user_milestones WHERE milestone_id = ?", [existing[0].milestone_id]);

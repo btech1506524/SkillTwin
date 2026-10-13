@@ -151,13 +151,13 @@ export default function Login() {
                 <div className="label-row">
                   <label>Password</label>
                   {/* ERR-029 FIX: Replace alert popup with helpful inline notice */}
-                  <span 
+                  <button type="button"
                     style={{ fontSize: '12px', color: '#818cf8', cursor: 'pointer' }}
                     onClick={() => setInfoMsg('Use demo account or reset password via administrator.')}
                     className="forgot-link"
                   >
                     Forgot password?
-                  </span>
+                  </button>
                 </div>
                 <div className="input-wrapper">
                   <Lock size={18} className="input-icon" />

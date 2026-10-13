@@ -12,6 +12,9 @@ const authMiddleware = (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
+    if (!token || authHeader.split(" ").length !== 2) {
+      return res.status(401).json({ success: false, message: "Invalid authorization header." });
+    }
 
     if (!process.env.JWT_SECRET) {
       return res.status(500).json({
@@ -25,7 +28,11 @@ const authMiddleware = (req, res, next) => {
       process.env.JWT_SECRET
     );
 
-    req.user = decoded;
+    if (!decoded || typeof decoded !== "object" || !Number.isSafeInteger(Number(decoded.user_id)) || Number(decoded.user_id) < 1) {
+      return res.status(401).json({ success: false, message: "Invalid or expired token." });
+    }
+
+    req.user = { ...decoded, user_id: Number(decoded.user_id) };
 
     next();
 

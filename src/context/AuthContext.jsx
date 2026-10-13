@@ -59,10 +59,8 @@ export function AuthProvider({ children }) {
     const apiRes = await apiService.login(email, password);
     
     // Success from backend
-    if (apiRes && apiRes.success && apiRes.user) {
-      if (apiRes.token) {
-        localStorage.setItem('skilltwin_token', apiRes.token);
-      }
+    if (apiRes && apiRes.success && apiRes.user && apiRes.token) {
+      localStorage.setItem('skilltwin_token', apiRes.token);
       setUser(normalizeUser(apiRes.user));
       return { success: true };
     }
@@ -72,7 +70,7 @@ export function AuthProvider({ children }) {
       return { success: false, message: apiRes.message || 'Invalid email or password' };
     }
 
-    return { success: false, message: 'Unable to sign in right now. Please try again.' };
+    return { success: false, message: apiRes?.message || 'Unable to sign in right now. Please try again.' };
   };
 
   const loginDemo = async () => {
@@ -89,11 +87,11 @@ export function AuthProvider({ children }) {
       semester,
       branch,
       targetRole,
-      password: password || 'password123'
+      password
     });
 
-    if (apiRes && apiRes.success && apiRes.user) {
-      if (apiRes.token) localStorage.setItem('skilltwin_token', apiRes.token);
+    if (apiRes && apiRes.success && apiRes.user && apiRes.token) {
+      localStorage.setItem('skilltwin_token', apiRes.token);
       setUser(normalizeUser(apiRes.user));
       return { success: true };
     }
@@ -102,7 +100,7 @@ export function AuthProvider({ children }) {
       return { success: false, message: apiRes.message || 'Registration failed' };
     }
 
-    return { success: false, message: 'Unable to create your account right now. Please try again.' };
+    return { success: false, message: apiRes?.message || 'Unable to create your account right now. Please try again.' };
   };
 
   const logout = () => {
@@ -114,16 +112,19 @@ export function AuthProvider({ children }) {
   // ERR-015 FIX: Sync target role using dedicated updateTargetRole API endpoint
   const updateTargetRole = async (newRole) => {
     if (!user) return;
-    setUser(prev => ({
-      ...prev,
-      targetRole: newRole
-    }));
+    if (!localStorage.getItem('skilltwin_token')) {
+      setUser(prev => ({ ...prev, targetRole: newRole }));
+      return { success: true, demo: true };
+    }
     try {
       const response = await apiService.updateTargetRole(newRole);
-      if (response?.success) await refreshCareerReadiness();
+      if (response?.success) {
+        setUser(prev => ({ ...prev, targetRole: newRole }));
+        await refreshCareerReadiness();
+      }
       return response;
     } catch {}
-    return null;
+    return { success: false, message: 'Unable to update your target role. Please try again.' };
   };
 
   const refreshCareerReadiness = useCallback(async () => {
@@ -154,6 +155,12 @@ export function AuthProvider({ children }) {
   // ERR-023 FIX: Avoid score inflation past benchmark where individual over-achieved skill compensates 0% gap
   const updateSkill = async (skillName, newLevel) => {
     if (!user) return;
+
+    if (localStorage.getItem('skilltwin_token')) {
+      const response = await apiService.updateSkillLevel(skillName, newLevel);
+      if (response?.success) await refreshCareerReadiness();
+      return response;
+    }
 
     setUser(prev => {
       const updatedSkills = {
@@ -196,14 +203,12 @@ export function AuthProvider({ children }) {
       };
     });
 
-    try {
-      const response = await apiService.updateSkillLevel(skillName, newLevel);
-      if (response?.success) await refreshCareerReadiness();
-    } catch {}
   };
 
   const toggleMilestone = async (milestoneId) => {
     if (!user) return;
+
+    const previous = user.completedMilestones || [];
 
     setUser(prev => {
       const exists = prev.completedMilestones?.includes(milestoneId);
@@ -216,9 +221,12 @@ export function AuthProvider({ children }) {
       };
     });
 
+    if (!localStorage.getItem('skilltwin_token')) return;
+
     try {
-      await apiService.toggleMilestoneStatus(milestoneId);
-    } catch {}
+      const response = await apiService.toggleMilestoneStatus(milestoneId);
+      if (!response?.success) setUser(prevUser => ({ ...prevUser, completedMilestones: previous }));
+    } catch { setUser(prevUser => ({ ...prevUser, completedMilestones: previous })); }
   };
 
   return (

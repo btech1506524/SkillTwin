@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles, GraduationCap, Target, Zap, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,6 +9,9 @@ export default function Signup() {
   const [errorMsg, setErrorMsg] = useState('');
   const { signup, loginDemo } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const allowedRoles = ['Software Developer', 'Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'AI / ML Engineer', 'Data Analyst'];
+  const requestedRole = searchParams.get('targetRole');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -16,7 +19,7 @@ export default function Signup() {
     password: '',
     semester: '5',
     branch: 'Computer Science & Engineering',
-    targetRole: 'Software Developer'
+    targetRole: allowedRoles.includes(requestedRole) ? requestedRole : 'Software Developer'
   });
 
   const handleChange = (e) => {

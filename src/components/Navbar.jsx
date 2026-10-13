@@ -17,7 +17,7 @@ export default function Navbar() {
   const isHome = location.pathname === "/";
 
   // ERR-032 FIX: Safe name parsing with null/empty guard
-  const firstName = user?.name ? user.name.trim().split(' ')[0] : 'Student';
+  const firstName = typeof user?.name === 'string' && user.name.trim() ? user.name.trim().split(' ')[0] : 'Student';
 
   return (
     <nav className="navbar">

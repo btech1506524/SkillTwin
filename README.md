@@ -88,6 +88,23 @@ Phase 12 uses the Phase 11 `roadmap_milestones` table and adds no additional dat
 
 Add safe PDF/text resume import and let students save, compare, and remove their own prior analysis reports.
 
+## Project audit — 2026-10-13
+
+The repository-wide review found and fixed these issues:
+
+- Sign-up no longer substitutes a shared fallback password. Login and registration only create a persistent session when the API returns both a user and a signed token.
+- Registration now validates supported target roles, semester range, and profile field lengths. Empty/missing JSON bodies return validation errors instead of causing a server error. A role change commits the target role atomically; the next roadmap read generates a fresh snapshot while preserving earlier roadmap history.
+- Authentication rejects malformed bearer headers and signed tokens without a valid numeric user ID.
+- The simulator validates scenario inputs, clamps projections to the remaining readiness range, and caps each skill's contribution at its requirement. Dashboard skill values preserve a legitimate zero score, and overlapping simulation responses cannot overwrite newer selections.
+- Failed server-backed skill or milestone changes no longer leave fabricated optimistic values in the browser. Failed role changes no longer change the displayed target role.
+- Feature buttons now work, career selections carry through registration or update an existing profile, footer section links work from nested routes, and unknown client routes return to the home page. A Netlify `_redirects` rule supports direct SPA route loads there.
+- Removed unsupported claims about AI career chat, university curriculum alignment, student testimonials, and placement/recruitment benchmarks. Resume analysis is deterministic text-keyword matching; assessments and projections are rule-based.
+- Production configuration now rejects malformed client origins and invalid API ports.
+
+The production database connection, migrations, account flow, and saved roadmap still require verification against a provisioned MySQL 8 service. This repository does not include a running database or deployment credentials, so that live integration check cannot be completed locally. Configure SPA history fallback on any static host other than Netlify as well.
+
+The frontend production build and backend source checks are run as part of this audit. They do not replace the pending live MySQL/deployment verification.
+
 The root `npm run build` command builds the frontend for production.
 
 ## Production deployment

@@ -48,29 +48,44 @@ router.post("/simulate", authMiddleware, async (req, res) => {
 
     // Dashboard scenario simulation. Keep the scoring model deterministic so
     // the displayed projection is reproducible and can run without role seed data.
-    if (Array.isArray(req.body.addedSkills)) {
+    if (Array.isArray(req.body?.addedSkills)) {
       const scenarioBoosts = { "LeetCode 150": 9, "Docker CI/CD": 11, "DBMS Indexing": 7, "System Design Mini": 12 };
-      const totalBoost = Math.min(100 - Number(req.body.currentScore || 0), req.body.addedSkills.reduce((sum, item) => sum + (scenarioBoosts[item] || 5), 0));
-      return res.json({ success: true, totalBoost: Math.max(0, totalBoost), targetRole: req.body.targetRole || "Software Developer" });
+      const { addedSkills } = req.body;
+      const currentScore = Number(req.body.currentScore);
+      const targetRole = typeof req.body.targetRole === "string" ? req.body.targetRole.trim() : "Software Developer";
+      if (!Number.isFinite(currentScore) || currentScore < 0 || currentScore > 100 ||
+          addedSkills.length > Object.keys(scenarioBoosts).length ||
+          addedSkills.some(skill => typeof skill !== "string" || !Object.hasOwn(scenarioBoosts, skill)) ||
+          new Set(addedSkills).size !== addedSkills.length || targetRole.length > 120) {
+        return res.status(400).json({ success: false, message: "Scenario skills, readiness score, or target role are invalid." });
+      }
+      const requestedBoost = addedSkills.reduce((sum, item) => sum + scenarioBoosts[item], 0);
+      const totalBoost = Math.min(100 - currentScore, requestedBoost);
+      return res.json({ success: true, totalBoost, targetRole: targetRole || "Software Developer" });
     }
 
     const {
       role_id,
       hours_per_week = 10
-    } = req.body;
+    } = req.body || {};
 
-    if (!role_id) {
+    const normalizedRoleId = Number(role_id);
+    const hoursPerWeek = Number(hours_per_week);
+    if (!Number.isSafeInteger(normalizedRoleId) || normalizedRoleId < 1) {
       return res.status(400).json({
         success: false,
-        message: "role_id is required."
+        message: "A valid role_id is required."
       });
+    }
+    if (!Number.isFinite(hoursPerWeek) || hoursPerWeek < 1 || hoursPerWeek > 80) {
+      return res.status(400).json({ success: false, message: "hours_per_week must be between 1 and 80." });
     }
 
     const [roles] = await db.query(
       `SELECT *
        FROM career_roles
        WHERE role_id = ?`,
-      [role_id]
+      [normalizedRoleId]
     );
 
     if (roles.length === 0) {
@@ -98,7 +113,7 @@ router.post("/simulate", authMiddleware, async (req, res) => {
        WHERE crs.role_id = ?`,
       [
         req.user.user_id,
-        role_id
+        normalizedRoleId
       ]
     );
 
@@ -128,7 +143,7 @@ router.post("/simulate", authMiddleware, async (req, res) => {
         required = 100;
       }
 
-      totalCurrent += current;
+      totalCurrent += Math.min(current, required);
       totalRequired += required;
 
     });
@@ -147,14 +162,7 @@ router.post("/simulate", authMiddleware, async (req, res) => {
       Math.max(0, 100 - readiness);
 
     const estimatedWeeks =
-      hours_per_week > 0
-        ? Math.max(
-            4,
-            Math.ceil(
-              gap / (hours_per_week * 0.8)
-            )
-          )
-        : 12;
+      Math.max(4, Math.ceil(gap / (hoursPerWeek * 0.8)));
 
     res.json({
       success: true,
@@ -163,7 +171,7 @@ router.post("/simulate", authMiddleware, async (req, res) => {
         targetRole: role.role_name,
         readinessScore: readiness,
         skillGap: gap,
-        hoursPerWeek: hours_per_week,
+        hoursPerWeek,
         estimatedWeeks,
         skills
       }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Brain, Target, TrendingUp, FileText, CheckCircle2, Circle, AlertCircle, 
@@ -42,6 +42,7 @@ export default function Dashboard() {
   const [roadmapProgress, setRoadmapProgress] = useState({ total: 0, completed: 0, inProgress: 0, planned: 0, percentage: 0 });
   const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [roadmapError, setRoadmapError] = useState('');
+  const simulationRequest = useRef(0);
 
   useEffect(() => {
     refreshCareerReadiness();
@@ -76,9 +77,9 @@ export default function Dashboard() {
 
   // Dynamic skill statistics computed directly from student.skills (ERR-043 fix)
   const skillsObj = student.skills || {};
-  const dsaLevel = skillsObj['Data Structures & Algorithms']?.current || 65;
-  const dbmsLevel = skillsObj['DBMS & SQL Queries']?.current || 80;
-  const devopsLevel = skillsObj['Git, Docker & CI/CD']?.current || 35;
+  const dsaLevel = skillsObj['Data Structures & Algorithms']?.current ?? 65;
+  const dbmsLevel = skillsObj['DBMS & SQL Queries']?.current ?? 80;
+  const devopsLevel = skillsObj['Git, Docker & CI/CD']?.current ?? 35;
 
   const fallbackRoadmapItems = [
     {
@@ -179,6 +180,7 @@ export default function Dashboard() {
   };
 
   const handleSimulateScenario = async (boost, label) => {
+    const requestId = ++simulationRequest.current;
     let updatedSkills;
     if (simulatedSkills.includes(label)) {
       updatedSkills = simulatedSkills.filter(s => s !== label);
@@ -200,17 +202,18 @@ export default function Dashboard() {
     try {
       const serverSim = await apiService.simulateCareerBoost(currentScore, updatedSkills, student.targetRole);
       if (serverSim && serverSim.success && typeof serverSim.totalBoost === 'number') {
-        setSimulatedBoost(serverSim.totalBoost);
+        if (requestId === simulationRequest.current) setSimulatedBoost(serverSim.totalBoost);
         return;
       }
     } catch {}
 
     // Deterministic client fallback calculation
     const calculatedBoost = updatedSkills.reduce((acc, skill) => acc + (SCENARIO_BOOSTS[skill] || 5), 0);
-    setSimulatedBoost(calculatedBoost);
+    if (requestId === simulationRequest.current) setSimulatedBoost(Math.max(0, Math.min(100 - currentScore, calculatedBoost)));
   };
 
   const resetSimulation = () => {
+    simulationRequest.current += 1;
     setSimulationActive(false);
     setSimulatedBoost(0);
     setSimulatedSkills([]);
@@ -347,22 +350,18 @@ export default function Dashboard() {
                 </svg>
                 <div className="gauge-number">
                   <strong>{effectiveScore}%</strong>
-                  <span>{effectiveScore >= 75 ? 'Placement Ready' : 'On Track'}</span>
+                  <span>{effectiveScore >= 75 ? 'At displayed target' : 'Building skills'}</span>
                 </div>
               </div>
 
               <div className="gauge-insights">
                 <div className="insight-row">
-                  <span>Current Tier</span>
-                  <strong className="tier-badge">Tier-1 SDE Ready</strong>
+                  <span>Profile status</span>
+                  <strong className="tier-badge">{effectiveScore >= 75 ? 'Target met' : 'Target in progress'}</strong>
                 </div>
                 <div className="insight-row">
                   <span>Benchmark</span>
-                  <span>75% target for Sem 5</span>
-                </div>
-                <div className="insight-row">
-                  <span>Recruitment Window</span>
-                  <span>Sem 6 Campus Drive (~90 Days)</span>
+                  <span>Illustrative profile target</span>
                 </div>
               </div>
             </div>

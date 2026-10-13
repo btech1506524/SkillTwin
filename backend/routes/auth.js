@@ -64,10 +64,12 @@ router.post("/register", async (req, res) => {
       semester,
       targetRole,
       graduation_year
-    } = req.body;
+    } = req.body || {};
 
     const studentName = typeof (name || full_name) === "string" ? (name || full_name).trim() : "";
     const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+    const selectedRole = typeof targetRole === "string" && targetRole.trim() ? targetRole.trim() : "Software Developer";
+    const selectedSemester = Number(semester ?? 5);
 
     if (!studentName || !normalizedEmail || typeof password !== "string") {
       return res.status(400).json({
@@ -75,14 +77,21 @@ router.post("/register", async (req, res) => {
         message: "Name, email and password are required"
       });
     }
-    if (studentName.length > 100 || normalizedEmail.length > 254 ||
+    if (studentName.length > 160 || normalizedEmail.length > 254 ||
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ||
-        password.length < 6 || Buffer.byteLength(password, "utf8") > 72) {
-      return res.status(400).json({ success: false, message: "Please provide a valid name, email and password (6–72 bytes)." });
+        password.length < 6 || Buffer.byteLength(password, "utf8") > 72 ||
+        !Number.isInteger(selectedSemester) || selectedSemester < 3 || selectedSemester > 8 ||
+        (branch != null && (typeof branch !== "string" || branch.length > 160)) ||
+        (college != null && (typeof college !== "string" || college.length > 200)) ||
+        (phone != null && (typeof phone !== "string" || phone.length > 40))) {
+      return res.status(400).json({ success: false, message: "Please provide valid profile details, a semester from 3 to 8, and a password of 6–72 bytes." });
     }
     if (!process.env.JWT_SECRET) {
       return res.status(503).json({ success: false, message: "Authentication is temporarily unavailable." });
     }
+
+    const [roleRows] = await db.query("SELECT role_id FROM career_roles WHERE role_name = ?", [selectedRole]);
+    if (!roleRows.length) return res.status(400).json({ success: false, message: "Choose a supported target role." });
 
     connection = await db.getConnection();
     await connection.beginTransaction();
@@ -113,12 +122,12 @@ router.post("/register", async (req, res) => {
         college || null,
         branch || null,
         graduation_year || null,
-        semester || 5,
-        targetRole || "Software Developer"
+        selectedSemester,
+        selectedRole
       ]
     );
 
-    await initializeStudent(connection, result.insertId, targetRole || "Software Developer");
+    await initializeStudent(connection, result.insertId, selectedRole);
     await connection.commit();
 
     // ERR-025 FIX: Generate and return a JWT token (previously missing)
@@ -137,9 +146,9 @@ router.post("/register", async (req, res) => {
         id: result.insertId,
         name: studentName,
         email: normalizedEmail,
-        semester: semester || "5",
+        semester: String(selectedSemester),
         branch: branch || "Computer Science & Engineering",
-        targetRole: targetRole || "Software Developer",
+        targetRole: selectedRole,
         college: college || "",
         cgpa: "0.0",
         readinessScore: scoreSkills(toSkillMap()),
@@ -172,8 +181,8 @@ router.post("/register", async (req, res) => {
 // ===============================
 router.post("/login", async (req, res) => {
   try {
-    const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
-    const { password } = req.body;
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    const { password } = req.body || {};
 
     if (!email || typeof password !== "string" || email.length > 254 || Buffer.byteLength(password, "utf8") > 72) {
       return res.status(400).json({

@@ -6,11 +6,10 @@ import Footer from "../components/Footer";
 import AnimatedSection from "../components/AnimatedSection";
 import ParticleBackground from "../components/ParticleBackground";
 import CountUp from "../components/CountUp";
-import TestimonialCard from "../components/TestimonialCard";
 import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
-  const { user, loginDemo } = useAuth();
+  const { user, loginDemo, updateTargetRole } = useAuth();
   const navigate = useNavigate();
 
   const handleStart = () => {
@@ -31,13 +30,27 @@ export default function Home() {
     }
   };
 
-  const handleCareerSelect = (roleName) => {
+  const handleCareerSelect = async (roleName) => {
     if (user) {
+      const result = await updateTargetRole(roleName);
+      if (!result?.success) return;
       navigate('/dashboard');
     } else {
-      navigate('/signup');
+      navigate(`/signup?targetRole=${encodeURIComponent(roleName)}`);
     }
   };
+
+  const careerSelectProps = (roleName) => ({
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => handleCareerSelect(roleName),
+    onKeyDown: (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handleCareerSelect(roleName);
+      }
+    }
+  });
 
   return (
     <div className="home">
@@ -48,7 +61,7 @@ export default function Home() {
       <section className="hero">
         <div className="hero-content">
           <AnimatedSection>
-            <div className="hero-badge"><Sparkles size={16} /> Sem 5 CSE Edition · AI Career Intelligence</div>
+          <div className="hero-badge"><Sparkles size={16} /> Student Career Planning · SkillTwin AI</div>
           </AnimatedSection>
           <AnimatedSection delay={100}>
             <h1>Build the career<span> you actually want.</span></h1>
@@ -68,7 +81,7 @@ export default function Home() {
             <div className="hero-stats">
               <div><strong><CountUp end={50} suffix="+" /></strong><span>Skills Tracked</span></div>
               <div><strong><CountUp end={6} suffix="+" /></strong><span>Career Paths</span></div>
-              <div><strong>AI</strong><span>Powered</span></div>
+              <div><strong>Role</strong><span>Focused</span></div>
             </div>
           </AnimatedSection>
         </div>
@@ -95,7 +108,7 @@ export default function Home() {
               <div className="readiness-info">
                 <p>Campus Placement Readiness</p>
                 <div className="progress-bar"><div style={{ width: '68%' }}></div></div>
-                <small>Tier-1 SDE benchmark: 75% · Tap to simulate</small>
+                <small>Illustrative demo profile · Tap to explore</small>
               </div>
             </div>
             <div className="mini-skills">
@@ -104,20 +117,6 @@ export default function Home() {
               <div className="mini-skill-item"><span>Database</span><div className="mini-bar"><div style={{ width: '80%' }}></div></div><strong>80%</strong></div>
               <div className="mini-skill-item"><span>DevOps</span><div className="mini-bar"><div style={{ width: '25%' }}></div></div><strong>25%</strong></div>
             </div>
-          </div>
-        </AnimatedSection>
-      </section>
-
-      {/* ===== TRUSTED BY (SOCIAL PROOF) ===== */}
-      <section className="trust-section">
-        <AnimatedSection>
-          <p className="trust-label">Aligned with curriculum standards across</p>
-          <div className="trust-logos">
-            <span>🎓 KTU</span>
-            <span>🎓 VTU</span>
-            <span>🎓 CUSAT</span>
-            <span>🎓 Anna University</span>
-            <span>🎓 Mumbai University</span>
           </div>
         </AnimatedSection>
       </section>
@@ -132,12 +131,12 @@ export default function Home() {
           </div>
         </AnimatedSection>
         <div className="features-grid">
-          <AnimatedSection delay={0}><FeatureCard icon={<Target />} title="Skill Gap Analysis" description="Discover exactly which skills you need to improve for your target career." /></AnimatedSection>
-          <AnimatedSection delay={80}><FeatureCard icon={<FileText />} title="Resume Role Fit" description="Compare resume keyword evidence with the skill requirements for your target role." /></AnimatedSection>
-          <AnimatedSection delay={160}><FeatureCard icon={<Map />} title="Personalized Roadmap" description="Get a structured learning roadmap based on your current profile." /></AnimatedSection>
-          <AnimatedSection delay={240}><FeatureCard icon={<Brain />} title="AI Career Assistant" description="Ask career questions and receive personalized guidance based on your profile." /></AnimatedSection>
-          <AnimatedSection delay={320}><FeatureCard icon={<TrendingUp />} title="Career Simulator" description="Explore how your career-readiness profile changes when you add new skills." /></AnimatedSection>
-          <AnimatedSection delay={400}><FeatureCard icon={<Sparkles />} title="Progress Analytics" description="Track your skills, learning progress and roadmap completion." /></AnimatedSection>
+          <AnimatedSection delay={0}><FeatureCard icon={<Target />} title="Skill Gap Analysis" description="Discover exactly which skills you need to improve for your target career." onExplore={handleStart} /></AnimatedSection>
+          <AnimatedSection delay={80}><FeatureCard icon={<FileText />} title="Resume Role Fit" description="Compare resume keyword evidence with the skill requirements for your target role." onExplore={handleStart} /></AnimatedSection>
+          <AnimatedSection delay={160}><FeatureCard icon={<Map />} title="Personalized Roadmap" description="Get a structured learning roadmap based on your current profile." onExplore={handleStart} /></AnimatedSection>
+          <AnimatedSection delay={240}><FeatureCard icon={<Brain />} title="Assessment Practice" description="Take role-relevant knowledge checks and review your saved attempt history." onExplore={handleStart} /></AnimatedSection>
+          <AnimatedSection delay={320}><FeatureCard icon={<TrendingUp />} title="Career Simulator" description="Explore how your career-readiness profile changes when you add new skills." onExplore={handleStart} /></AnimatedSection>
+          <AnimatedSection delay={400}><FeatureCard icon={<Sparkles />} title="Progress Analytics" description="Track your skills, learning progress and roadmap completion." onExplore={handleStart} /></AnimatedSection>
         </div>
       </section>
 
@@ -190,28 +189,24 @@ export default function Home() {
           </div>
         </AnimatedSection>
         <div className="career-grid">
-          <AnimatedSection delay={0}><div className="career-card" onClick={() => handleCareerSelect('Software Developer')} style={{ cursor: 'pointer' }}><div className="career-card-icon"><Code size={24} /></div><span>01</span><h3>Software Developer</h3><p>DSA · OOP · DBMS · Development</p></div></AnimatedSection>
-          <AnimatedSection delay={80}><div className="career-card" onClick={() => handleCareerSelect('Frontend Developer')} style={{ cursor: 'pointer' }}><div className="career-card-icon"><Zap size={24} /></div><span>02</span><h3>Frontend Developer</h3><p>React · JavaScript · UI · Web</p></div></AnimatedSection>
-          <AnimatedSection delay={160}><div className="career-card" onClick={() => handleCareerSelect('Backend Developer')} style={{ cursor: 'pointer' }}><div className="career-card-icon"><Database size={24} /></div><span>03</span><h3>Backend Developer</h3><p>Node.js · APIs · Databases · Security</p></div></AnimatedSection>
-          <AnimatedSection delay={240}><div className="career-card" onClick={() => handleCareerSelect('Full Stack Developer')} style={{ cursor: 'pointer' }}><div className="career-card-icon"><Shield size={24} /></div><span>04</span><h3>Full Stack Developer</h3><p>Frontend · Backend · Database · DevOps</p></div></AnimatedSection>
-          <AnimatedSection delay={320}><div className="career-card" onClick={() => handleCareerSelect('Data Analyst')} style={{ cursor: 'pointer' }}><div className="career-card-icon"><BarChart3 size={24} /></div><span>05</span><h3>Data Analyst</h3><p>SQL · Python · Statistics · Visualization</p></div></AnimatedSection>
-          <AnimatedSection delay={400}><div className="career-card" onClick={() => handleCareerSelect('AI / ML Engineer')} style={{ cursor: 'pointer' }}><div className="career-card-icon"><Cpu size={24} /></div><span>06</span><h3>AI / ML Engineer</h3><p>Python · ML · Mathematics · AI</p></div></AnimatedSection>
+          <AnimatedSection delay={0}><div className="career-card" {...careerSelectProps('Software Developer')}><div className="career-card-icon"><Code size={24} /></div><span>01</span><h3>Software Developer</h3><p>DSA · OOP · DBMS · Development</p></div></AnimatedSection>
+          <AnimatedSection delay={80}><div className="career-card" {...careerSelectProps('Frontend Developer')}><div className="career-card-icon"><Zap size={24} /></div><span>02</span><h3>Frontend Developer</h3><p>React · JavaScript · UI · Web</p></div></AnimatedSection>
+          <AnimatedSection delay={160}><div className="career-card" {...careerSelectProps('Backend Developer')}><div className="career-card-icon"><Database size={24} /></div><span>03</span><h3>Backend Developer</h3><p>Node.js · APIs · Databases · Security</p></div></AnimatedSection>
+          <AnimatedSection delay={240}><div className="career-card" {...careerSelectProps('Full Stack Developer')}><div className="career-card-icon"><Shield size={24} /></div><span>04</span><h3>Full Stack Developer</h3><p>Frontend · Backend · Database · DevOps</p></div></AnimatedSection>
+          <AnimatedSection delay={320}><div className="career-card" {...careerSelectProps('Data Analyst')}><div className="career-card-icon"><BarChart3 size={24} /></div><span>05</span><h3>Data Analyst</h3><p>SQL · Python · Statistics · Visualization</p></div></AnimatedSection>
+          <AnimatedSection delay={400}><div className="career-card" {...careerSelectProps('AI / ML Engineer')}><div className="career-card-icon"><Cpu size={24} /></div><span>06</span><h3>AI / ML Engineer</h3><p>Python · ML · Mathematics · AI</p></div></AnimatedSection>
         </div>
       </section>
 
-      {/* ===== TESTIMONIALS ===== */}
+      {/* ===== ABOUT ===== */}
       <section className="testimonials-section" id="about">
         <AnimatedSection>
           <div className="section-heading">
-            <span>WHAT STUDENTS SAY</span>
-            <h2>Loved by<br /><strong>future engineers.</strong></h2>
+            <span>ABOUT SKILLTWIN</span>
+            <h2>Plan with a clearer<br /><strong>view of your gaps.</strong></h2>
+            <p>SkillTwin compares a saved skill profile with seeded role requirements, tracks learning milestones, and offers deterministic resume keyword and scenario analysis.</p>
           </div>
         </AnimatedSection>
-        <div className="testimonials-grid">
-          <AnimatedSection delay={0}><TestimonialCard avatar="A" name="Arun K." role="CSE, Sem 6" quote="SkillTwin showed me I was missing key DSA skills for my dream SDE role. The roadmap was a lifesaver!" /></AnimatedSection>
-          <AnimatedSection delay={120}><TestimonialCard avatar="S" name="Sneha R." role="IT, Sem 5" quote="The career simulator feature is incredible. I could see exactly how learning React would boost my profile." /></AnimatedSection>
-          <AnimatedSection delay={240}><TestimonialCard avatar="D" name="Dev P." role="CSE, Sem 7" quote="I uploaded my resume and got instant feedback on what to improve. Way better than asking seniors!" /></AnimatedSection>
-        </div>
       </section>
 
       {/* ===== CTA ===== */}
@@ -220,7 +215,7 @@ export default function Home() {
           <div className="cta-glow"></div>
           <div className="cta-content">
             <h2>Ready to build your<br /><strong>Career Twin?</strong></h2>
-            <p>Join hundreds of students who are already using SkillTwin AI to plan smarter careers.</p>
+            <p>Create a profile or open the demo to explore the career planning tools.</p>
             <div className="cta-buttons">
               <button onClick={handleStart} className="primary-btn glow-btn">
                 {user ? 'Open Dashboard' : 'Get Started Free'} <ArrowRight size={18} />

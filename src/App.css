@@ -1416,6 +1416,10 @@
   text-decoration: none;
   font-weight: 600;
   transition: color 0.3s;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-family: inherit;
 }
 
 .forgot-link:hover {
