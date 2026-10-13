@@ -27,6 +27,9 @@ function validateProductionConfig() {
     try { return new URL(origin.trim()).protocol !== "https:"; } catch { return true; }
   })) throw new Error("Production CLIENT_ORIGIN entries must use HTTPS.");
   if (process.env.DB_SSL !== "true") throw new Error("Production database connections must enable DB_SSL=true.");
+  if (process.env.DB_SSL_REJECT_UNAUTHORIZED === "false") {
+    throw new Error("Production database TLS must verify the server certificate; DB_SSL_REJECT_UNAUTHORIZED=false is not supported.");
+  }
   for (const key of ["DB_HOST", "DB_USER", "DB_PASS", "DB_NAME"]) {
     if (!process.env[key]) throw new Error(`Production requires ${key} to be configured.`);
   }
