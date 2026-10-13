@@ -58,7 +58,7 @@ The API checks the current role in MySQL on each admin request. Admins can searc
 
 ## Separate frontend and backend
 
-The Render Blueprint defines separate services: a static Vite student frontend and an Express API service that serves its own admin dashboard at `/admin`. The API service does not build or host the student frontend. The frontend's `/admin` route redirects to the configured backend dashboard URL.
+Vercel hosts the Vite student frontend. Render hosts the Express API and its backend-served admin dashboard at `/admin`. The two apps deploy independently. The frontend's `/admin` route redirects to the configured Render admin URL.
 
 ## Project progress
 
@@ -130,21 +130,18 @@ The root `npm run build` command builds the frontend for production.
 
 ## Production deployment
 
-Deploy the React/Vite student frontend as a static site and the Express API/admin dashboard as a separate Node web service. The root `render.yaml` defines both services. The API serves `/api/*` plus its own `/admin` dashboard and does not serve the student frontend. Set `VITE_API_BASE_URL` and `VITE_ADMIN_URL` for the frontend build, and set backend `CLIENT_ORIGIN` to the exact HTTPS frontend origin.
+Deploy the React/Vite student frontend to Vercel and the Express API/admin dashboard to Render. The root `render.yaml` defines the Render backend only. The API serves `/api/*` plus its own `/admin` dashboard and does not serve the student frontend. Set Vercel's build-time `VITE_API_BASE_URL` and `VITE_ADMIN_URL`, and set Render's `CLIENT_ORIGIN` to the exact HTTPS Vercel origin.
 
 Set `NODE_ENV=production`, `PORT`, `JWT_SECRET` (at least 32 randomly generated characters), `CLIENT_ORIGIN` (comma-separated HTTPS origins, no wildcards), and `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, and `DB_PORT`. Production startup rejects missing secrets/database settings, insecure client origins, and database TLS disabled. Set `DB_SSL=true`; when the database provider requires a private CA, set `DB_SSL_CA` to its CA bundle path. Use a dedicated least-privilege database account and keep credentials in the deployment secret store, never in the repository.
 
 Apply schema/migrations before deploying. Keep MySQL on a private network, enable encrypted database backups and restore procedures, and configure request rate limits for `/api/auth/login` and `/api/auth/register` at the trusted ingress or API gateway (especially when running multiple API instances). Terminate HTTPS at a trusted load balancer, set its security headers/HSTS policy, and expose `/api/health/live` for liveness plus `/api/health/ready` for database readiness. The API bounds JSON bodies to 64 KB and drains connections on SIGTERM/SIGINT.
 
-### Render services
+### Vercel frontend
 
-The Render Blueprint defines a backend web service and a separate frontend static site. For manual setup:
+Use the repository root as the project root, `npm ci` as the install command, `npm run build` as the build command, and `dist` as the output directory. Set `VITE_API_BASE_URL=https://<render-backend-host>/api` and `VITE_ADMIN_URL=https://<render-backend-host>/admin`. Use the actual deployed hostnames.
 
-| Service | Root Directory | Build Command | Start / Publish | Required settings |
-| --- | --- | --- | --- | --- |
-| `skilltwin-api` Web Service | `backend` | `npm ci && npm run build` | `npm start` | Health check `/api/health/live`; set `CLIENT_ORIGIN` to the exact frontend HTTPS origin, plus production database and JWT secrets. |
-| `skilltwin-frontend` Static Site | repository root | `npm ci && npm run build` | Publish `dist` | Set `VITE_API_BASE_URL` to `https://<backend-host>/api` and `VITE_ADMIN_URL` to `https://<backend-host>/admin`; configure SPA rewrite `/*` → `/index.html`. |
+### Render backend
 
-Use the actual Render hostnames after the services are created. The Blueprint prompts for frontend API/admin URLs, backend `CLIENT_ORIGIN`, and database credentials. The API installs from `backend/package-lock.json`; the frontend installs from the root `package-lock.json`.
+The Render Blueprint defines only the backend web service. For a manual Render Web Service, use **Root Directory** `backend`, **Build Command** `npm ci && npm run build`, **Start Command** `npm start`, and **Health Check Path** `/api/health/live`. Set `CLIENT_ORIGIN` to the exact Vercel production origin (no path or trailing slash), plus the production database and JWT secrets. The API installs from `backend/package-lock.json`.
 
 The gap response lists every skill required by the selected role, including skills the student has not recorded. Readiness is the unweighted sum of each current score capped at that skill's required score, divided by the sum of all required scores. Missing skills count as zero. The resume analyzer and career simulator currently use local deterministic rules; neither calls an external AI model.
