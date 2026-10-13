@@ -1,50 +1,187 @@
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, ".env") });
 require("dotenv").config();
 
-const db = require("./db");
 const express = require("express");
 const cors = require("cors");
+
+const db = require("./db");
+
 const authRoutes = require("./routes/auth");
+const studentRoutes = require("./routes/student");
+const aiRoutes = require("./routes/ai");
 
 const app = express();
 
-// ERR-024 FIX: Restrict CORS to configured frontend origin instead of allowing all
-app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-app.use(express.json());
-app.use("/api/auth", authRoutes);
+const PORT =
+  process.env.PORT || 5000;
 
-// Health check route
+
+// =====================================================
+// MIDDLEWARE
+// =====================================================
+
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173"
+    ]
+  })
+);
+
+app.use(express.json());
+
+
+// =====================================================
+// ROOT
+// =====================================================
+
 app.get("/", (req, res) => {
+
   res.json({
-    message: "SkillTwin AI Backend (MySQL) is running!",
-    note: "This is the MySQL backend on port 5001. The primary API server runs on port 5000."
+    service: "SkillTwin AI Backend API",
+    status: "online"
   });
+
 });
 
-// Database test route
-app.get("/api/test-db", async (req, res) => {
+
+// =====================================================
+// HEALTH CHECK
+// =====================================================
+
+app.get("/api/health", async (req, res) => {
+
   try {
-    const [rows] = await db.query("SELECT 1 AS test");
-    res.json({ success: true, message: "Database connection successful", data: rows });
+
+    await db.query("SELECT 1");
+
+    res.json({
+      service: "SkillTwin AI Backend API",
+      status: "online",
+      database: "connected",
+
+      endpoints: {
+        auth: [
+          "/api/auth/login",
+          "/api/auth/register",
+          "/api/auth/demo",
+          "/api/auth/me"
+        ],
+
+        student: [
+          "/api/student/profile",
+          "/api/student/skills",
+          "/api/student/target-role",
+          "/api/student/readiness"
+        ],
+
+        ai: [
+          "/api/ai/simulate",
+          "/api/ai/analyze-resume"
+        ]
+      }
+    });
+
   } catch (error) {
-    console.error("Database error:", error);
+
     res.status(500).json({
-      success: false,
-      message: "Database connection failed",
+      service: "SkillTwin AI Backend API",
+      status: "online",
+      database: "disconnected",
       error: error.message
     });
+
   }
+
 });
 
-// Start server
-// ERR-002 FIX: Changed default port from 5000 to 5001 to avoid conflict with server/ (primary backend)
-const PORT = process.env.PORT || 5001;
+
+// =====================================================
+// ROUTES
+// =====================================================
+
+app.use(
+  "/api/auth",
+  authRoutes
+);
+
+app.use(
+  "/api/student",
+  studentRoutes
+);
+
+app.use(
+  "/api/ai",
+  aiRoutes
+);
+
+
+// =====================================================
+// 404
+// =====================================================
+
+app.use((req, res) => {
+
+  res.status(404).json({
+    success: false,
+    message: "API endpoint not found.",
+    path: req.originalUrl
+  });
+
+});
+
+
+// =====================================================
+// ERROR HANDLER
+// =====================================================
+
+app.use((error, req, res, next) => {
+
+  console.error(error);
+
+  res.status(500).json({
+    success: false,
+    message: "Internal server error."
+  });
+
+});
+
+
+// =====================================================
+// START SERVER
+// =====================================================
 
 app.listen(PORT, () => {
-  console.log(`MySQL Backend running on http://localhost:${PORT}`);
+
+  console.log("");
+  console.log("======================================");
+  console.log("      SKILLTWIN AI BACKEND");
+  console.log("======================================");
+  console.log(
+    `Server running: http://localhost:${PORT}`
+  );
+  console.log(
+    `Health check: http://localhost:${PORT}/api/health`
+  );
+  console.log("");
+  console.log("Authentication:");
+  console.log("POST /api/auth/register");
+  console.log("POST /api/auth/login");
+  console.log("POST /api/auth/demo");
+  console.log("GET  /api/auth/me");
+  console.log("");
+  console.log("Student:");
+  console.log("GET /api/student/profile");
+  console.log("GET /api/student/skills");
+  console.log("PUT /api/student/skills");
+  console.log("GET /api/student/target-role");
+  console.log("PUT /api/student/target-role");
+  console.log("GET /api/student/readiness");
+  console.log("");
+  console.log("AI:");
+  console.log("POST /api/ai/simulate");
+  console.log("POST /api/ai/analyze-resume");
+  console.log("======================================");
+  console.log("");
+
 });

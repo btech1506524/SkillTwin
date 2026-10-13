@@ -13,6 +13,13 @@ const authMiddleware = (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({
+        success: false,
+        message: "JWT_SECRET is not configured."
+      });
+    }
+
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET
@@ -23,9 +30,11 @@ const authMiddleware = (req, res, next) => {
     next();
 
   } catch (error) {
+    console.error("Authentication error:", error.message);
+
     return res.status(401).json({
       success: false,
-      message: "Invalid or expired token"
+      message: "Invalid or expired token."
     });
   }
 };
