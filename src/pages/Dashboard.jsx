@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [simulatedSkills, setSimulatedSkills] = useState([]);
   const [resumeText, setResumeText] = useState('');
   const [resumeAnalysis, setResumeAnalysis] = useState(null);
+  const [resumeError, setResumeError] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [roadmapItems, setRoadmapItems] = useState([]);
   const [roadmapProgress, setRoadmapProgress] = useState({ total: 0, completed: 0, inProgress: 0, planned: 0, percentage: 0 });
@@ -217,33 +218,39 @@ export default function Dashboard() {
 
   const handleAnalyzeResume = async (e) => {
     e.preventDefault();
-    if (!resumeText.trim()) return;
-
+    if (!resumeText.trim()) {
+      setResumeError('Paste resume text before analyzing.');
+      return;
+    }
+    if (!localStorage.getItem('skilltwin_token')) {
+      setResumeError('Sign in with an account to compare your resume with its saved role requirements.');
+      return;
+    }
     setIsAnalyzing(true);
+    setResumeError('');
+    setResumeAnalysis(null);
 
     try {
-      const serverResult = await apiService.scanResumeText(resumeText, student.targetRole);
-      if (serverResult && serverResult.success) {
+      const serverResult = await apiService.scanResumeText(resumeText);
+      if (serverResult?.success) {
         setResumeAnalysis({
           matchPercentage: serverResult.matchPercentage,
+          roleName: serverResult.roleName,
+          summary: serverResult.summary,
+          matchedSkills: serverResult.matchedSkills || [],
           strengths: serverResult.strengths,
           gaps: serverResult.gaps,
-          recommendedKeywords: serverResult.recommendedKeywords
+          recommendedKeywords: serverResult.recommendedKeywords,
+          recommendations: serverResult.recommendations
         });
-        setIsAnalyzing(false);
-        return;
+      } else {
+        setResumeError(serverResult?.message || 'Unable to analyze this resume right now.');
       }
-    } catch {}
-
-    setTimeout(() => {
+    } catch {
+      setResumeError('Unable to reach the API. Check your connection and try again.');
+    } finally {
       setIsAnalyzing(false);
-      setResumeAnalysis({
-        matchPercentage: 74,
-        strengths: ['Strong Foundation in React & SQL', 'Clear academic CSE background', 'Good project orientation'],
-        gaps: ['Missing Unit Testing / Jest experience', 'No explicit CI/CD pipelines mentioned', 'Low visibility on System Design'],
-        recommendedKeywords: ['Docker', 'REST API', 'Unit Testing', 'Redis', 'Microservices', 'Git Workflow']
-      });
-    }, 600);
+    }
   };
 
   // Safe initial for avatar (ERR-031 fix)
@@ -444,7 +451,7 @@ export default function Dashboard() {
               onClick={() => setActiveTab('resume')}
             >
               <FileText size={17} />
-              <span>AI Resume & Gap Scanner</span>
+              <span>Resume Role Fit</span>
             </button>
           </div>
 
@@ -677,8 +684,8 @@ export default function Dashboard() {
               <div className="tab-pane resume-pane">
                 <div className="pane-header">
                   <div>
-                    <h2>AI Resume & Skill Gap Scanner</h2>
-                    <p>Paste your project descriptions or current resume draft to scan for core Sem 5 competencies.</p>
+                    <h2>Resume Evidence & Role Fit</h2>
+                    <p>Compare skills mentioned in your resume with the requirements for your saved target role. Keyword matches are evidence hints, not verified proficiency.</p>
                   </div>
                 </div>
 
@@ -689,9 +696,12 @@ export default function Dashboard() {
                         rows="7"
                         placeholder="Paste your resume summary, project details, or tech stack here (e.g. Built a student attendance portal using React, Node.js, and MongoDB with JWT auth...)"
                         value={resumeText}
-                        onChange={(e) => setResumeText(e.target.value)}
+                        maxLength={20000}
+                        onChange={(e) => { setResumeText(e.target.value); setResumeError(''); }}
+                        aria-label="Resume text"
                         className="resume-textarea"
                       ></textarea>
+                      <div className="resume-character-count">{resumeText.length.toLocaleString()} / 20,000 characters</div>
 
                       <div className="resume-actions-bar">
                         <button 
@@ -705,36 +715,40 @@ export default function Dashboard() {
                         <button type="submit" className="primary-btn glow-btn" disabled={isAnalyzing}>
                           {isAnalyzing ? (
                             <>
-                              <RefreshCw size={16} className="spin-icon" /> Analyzing with AI...
+                              <RefreshCw size={16} className="spin-icon" /> Analyzing...
                             </>
                           ) : (
                             <>
-                              <Sparkles size={16} /> Scan Competencies
+                              <Sparkles size={16} /> Analyze Resume
                             </>
                           )}
                         </button>
                       </div>
                     </form>
+                    {resumeError && <p className="resume-error" role="alert">{resumeError}</p>}
                   </div>
 
                   {resumeAnalysis && (
                     <div className="resume-analysis-output">
                       <div className="analysis-score-bar">
-                        <span>Role Match Rate</span>
+                        <span>Role Requirement Mentions · {resumeAnalysis.roleName}</span>
                         <strong>{resumeAnalysis.matchPercentage}%</strong>
                       </div>
+                      <p className="resume-match-summary">{resumeAnalysis.summary.matchedSkillCount} of {resumeAnalysis.summary.requiredSkillCount} role skills mentioned; {resumeAnalysis.summary.missingSkillCount} have no matching keyword evidence.</p>
 
                       <div className="analysis-group">
-                        <h5><CheckCircle2 size={15} className="text-success" /> Validated Strengths</h5>
+                        <h5><CheckCircle2 size={15} className="text-success" /> Resume Evidence Found</h5>
                         <ul>
-                          {resumeAnalysis.strengths.map((str, i) => (
-                            <li key={i}>{str}</li>
+                          {resumeAnalysis.matchedSkills.map((skill) => (
+                            <li key={skill.skillId}>{skill.skillName} — evidence: “{skill.evidence}” · {skill.requiredLevel} required</li>
                           ))}
+                          {resumeAnalysis.strengths.map((str, i) => <li key={`signal-${i}`}>{str}</li>)}
+                          {!resumeAnalysis.matchedSkills.length && <li>No target-role skill keywords were found in this resume text.</li>}
                         </ul>
                       </div>
 
                       <div className="analysis-group">
-                        <h5><AlertCircle size={15} className="text-warning" /> Critical Placement Gaps</h5>
+                        <h5><AlertCircle size={15} className="text-warning" /> Role Requirements Without Evidence</h5>
                         <ul>
                           {resumeAnalysis.gaps.map((gap, i) => (
                             <li key={i}>{gap}</li>
@@ -742,14 +756,18 @@ export default function Dashboard() {
                         </ul>
                       </div>
 
-                      <div className="analysis-group">
-                        <h5><Target size={15} className="text-cyan" /> Suggested Keywords to Add</h5>
+                      {resumeAnalysis.recommendedKeywords.length > 0 && <div className="analysis-group">
+                        <h5><Target size={15} className="text-cyan" /> Role Skills to Address</h5>
                         <div className="keyword-chips">
                           {resumeAnalysis.recommendedKeywords.map((kw, i) => (
                             <span key={i} className="kw-chip">{kw}</span>
                           ))}
                         </div>
-                      </div>
+                      </div>}
+                      {resumeAnalysis.recommendations.length > 0 && <div className="analysis-group">
+                        <h5>Suggestions</h5>
+                        <ul>{resumeAnalysis.recommendations.map((item, i) => <li key={i}>{item}</li>)}</ul>
+                      </div>}
                     </div>
                   )}
                 </div>

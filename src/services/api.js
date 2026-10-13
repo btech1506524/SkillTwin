@@ -124,12 +124,12 @@ export const apiService = {
     }
   },
 
-  scanResumeText: async (resumeText, targetRole) => {
+  scanResumeText: async (resumeText) => {
     try {
-      const response = await apiClient.post('/ai/analyze-resume', { resumeText, targetRole });
+      const response = await apiClient.post('/ai/analyze-resume', { resumeText });
       return response.data;
     } catch (err) {
-      return null;
+      return { success: false, message: err.response?.data?.message || 'Unable to analyze this resume right now.' };
     }
   },
 

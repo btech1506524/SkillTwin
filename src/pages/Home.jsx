@@ -133,7 +133,7 @@ export default function Home() {
         </AnimatedSection>
         <div className="features-grid">
           <AnimatedSection delay={0}><FeatureCard icon={<Target />} title="Skill Gap Analysis" description="Discover exactly which skills you need to improve for your target career." /></AnimatedSection>
-          <AnimatedSection delay={80}><FeatureCard icon={<FileText />} title="AI Resume Analyzer" description="Analyze your resume and identify skills, strengths and improvement areas." /></AnimatedSection>
+          <AnimatedSection delay={80}><FeatureCard icon={<FileText />} title="Resume Role Fit" description="Compare resume keyword evidence with the skill requirements for your target role." /></AnimatedSection>
           <AnimatedSection delay={160}><FeatureCard icon={<Map />} title="Personalized Roadmap" description="Get a structured learning roadmap based on your current profile." /></AnimatedSection>
           <AnimatedSection delay={240}><FeatureCard icon={<Brain />} title="AI Career Assistant" description="Ask career questions and receive personalized guidance based on your profile." /></AnimatedSection>
           <AnimatedSection delay={320}><FeatureCard icon={<TrendingUp />} title="Career Simulator" description="Explore how your career-readiness profile changes when you add new skills." /></AnimatedSection>

@@ -90,6 +90,7 @@ INSERT IGNORE INTO skills (skill_name, category) VALUES
 ('HTML', 'Frontend'),
 ('CSS', 'Frontend'),
 ('JavaScript', 'Frontend'),
+('Python', 'AI / ML'),
 ('Machine Learning', 'AI / ML'),
 ('Statistics & Data Analysis', 'Analytics'),
 ('Cloud Platforms & Deployment', 'DevOps');
@@ -164,9 +165,10 @@ WHERE r.role_name = 'Full Stack Developer';
 INSERT INTO career_role_skills (role_id, skill_id, required_level, importance)
 SELECT r.role_id, s.skill_id,
   CASE WHEN s.skill_name IN ('Data Structures & Algorithms', 'Machine Learning', 'Statistics & Data Analysis') THEN 'Advanced'
-       WHEN s.skill_name IN ('Object-Oriented Programming (Java/C++)', 'DBMS & SQL Queries', 'Operating Systems & Linux') THEN 'Intermediate'
+       WHEN s.skill_name IN ('Object-Oriented Programming (Java/C++)', 'DBMS & SQL Queries', 'Operating Systems & Linux', 'Python') THEN 'Intermediate'
        ELSE 'Beginner' END,
-  CASE WHEN s.skill_name IN ('Machine Learning', 'Statistics & Data Analysis', 'Data Structures & Algorithms') THEN 'Critical' ELSE 'Medium' END
+  CASE WHEN s.skill_name IN ('Machine Learning', 'Statistics & Data Analysis', 'Data Structures & Algorithms') THEN 'Critical'
+       WHEN s.skill_name = 'Python' THEN 'High' ELSE 'Medium' END
 FROM career_roles r JOIN skills s ON s.skill_name IN (
   'Data Structures & Algorithms', 'Object-Oriented Programming (Java/C++)', 'DBMS & SQL Queries',
   'Operating Systems & Linux', 'Python', 'Machine Learning', 'Statistics & Data Analysis'

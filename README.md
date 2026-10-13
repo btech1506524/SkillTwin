@@ -1,6 +1,6 @@
 # SkillTwin AI
 
-SkillTwin is a career-readiness dashboard for engineering students. It includes a React/Vite client and an Express API backed by MySQL. The dashboard tracks skills, target roles and roadmap milestones, provides deterministic career scenario projections, and offers a keyword-based resume review (not an external generative AI service).
+SkillTwin is a career-readiness dashboard for engineering students. It includes a React/Vite client and an Express API backed by MySQL. The dashboard tracks skills, target roles and roadmap milestones, provides deterministic career scenario projections, and compares resume keyword evidence with role requirements (not an external generative AI service).
 
 ## Requirements
 
@@ -16,7 +16,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm --prefix backend install
    ```
 
-2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds the skills and roles, and installs the assessment catalogue and personalized roadmap tables. For an existing database, apply migrations `001_student_readiness.sql`, `002_assessments.sql`, and `003_personalized_roadmaps.sql` in order. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
+2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds the skills and roles, and installs the assessment catalogue and personalized roadmap tables. For an existing database, apply migrations `001_student_readiness.sql`, `002_assessments.sql`, `003_personalized_roadmaps.sql`, and `004_resume_analysis.sql` in order. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
 
 3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET` (at least 32 characters for production).
 
@@ -76,9 +76,17 @@ The roadmap migration adds `roadmap_milestones` and a current-snapshot marker wh
 
 Phase 12 uses the Phase 11 `roadmap_milestones` table and adds no additional database migration.
 
-### Next phase — Phase 13: Resume analysis
+### Phase 13 — Role-aware resume evidence analysis (implemented)
 
-Improve resume analysis so it can compare resume evidence with the student's selected role requirements and clearly report supported skills and remaining gaps.
+- Compares pasted resume text with skill requirements for the authenticated student's saved target role.
+- Reports matching keyword evidence, role requirements without evidence, match percentage, experience signals, and targeted suggestions.
+- Limits analysis input to 20,000 characters and does not store the supplied resume text.
+- Labels matches as deterministic keyword evidence; it does not claim to verify proficiency or call an external AI service.
+- Adds Python to the AI / ML Engineer requirements for new databases and through migration `004_resume_analysis.sql` for existing databases.
+
+### Next suggested phase — Phase 14: Resume import and analysis history
+
+Add safe PDF/text resume import and let students save, compare, and remove their own prior analysis reports.
 
 The root `npm run build` command builds the frontend for production.
 

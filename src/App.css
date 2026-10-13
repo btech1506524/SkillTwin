@@ -2719,6 +2719,10 @@
   gap: 18px;
 }
 
+.resume-character-count { margin: -8px 0 12px; text-align: right; color: #8b99ad; font-size: 12px; }
+.resume-error { margin-top: 12px; color: #fca5a5; font-size: 13px; }
+.resume-match-summary { margin: -8px 0 0; color: #aab8cc; font-size: 13px; line-height: 1.5; }
+
 .analysis-score-bar {
   display: flex;
   justify-content: space-between;
