@@ -104,8 +104,11 @@ app.use((error, req, res, next) => {
   res.status(500).json({ success: false, message: "Internal server error." });
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`SkillTwin API listening on port ${PORT}`);
+}).on("error", error => {
+  console.error("Unable to bind API port:", error.code || error.name || "Error");
+  process.exit(1);
 });
 
 let shuttingDown = false;
