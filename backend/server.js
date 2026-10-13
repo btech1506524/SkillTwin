@@ -8,6 +8,7 @@ const db = require("./db");
 const authRoutes = require("./routes/auth");
 const studentRoutes = require("./routes/student");
 const aiRoutes = require("./routes/ai");
+const assessmentRoutes = require("./routes/assessments");
 
 const app = express();
 
@@ -73,6 +74,13 @@ app.get("/api/health", async (req, res) => {
           "/api/student/milestones"
         ],
 
+        assessments: [
+          "/api/assessments",
+          "/api/assessments/:assessmentId",
+          "/api/assessments/:assessmentId/submit",
+          "/api/assessments/results"
+        ],
+
         ai: [
           "/api/ai/simulate",
           "/api/ai/analyze-resume"
@@ -111,6 +119,11 @@ app.use(
 app.use(
   "/api/ai",
   aiRoutes
+);
+
+app.use(
+  "/api/assessments",
+  assessmentRoutes
 );
 
 
@@ -179,6 +192,8 @@ app.listen(PORT, () => {
   console.log("AI:");
   console.log("POST /api/ai/simulate");
   console.log("POST /api/ai/analyze-resume");
+  console.log("GET  /api/assessments");
+  console.log("POST /api/assessments/:assessmentId/submit");
   console.log("======================================");
   console.log("");
 

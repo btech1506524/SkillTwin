@@ -133,5 +133,41 @@ export const apiService = {
     } catch (err) {
       return null;
     }
+  },
+
+  getAssessments: async () => {
+    try {
+      const response = await apiClient.get('/assessments');
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load assessments.' };
+    }
+  },
+
+  getAssessment: async (assessmentId) => {
+    try {
+      const response = await apiClient.get(`/assessments/${assessmentId}`);
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load this assessment.' };
+    }
+  },
+
+  submitAssessment: async (assessmentId, answers) => {
+    try {
+      const response = await apiClient.post(`/assessments/${assessmentId}/submit`, { answers });
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to submit assessment.' };
+    }
+  },
+
+  getAssessmentResults: async () => {
+    try {
+      const response = await apiClient.get('/assessments/results');
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load assessment history.' };
+    }
   }
 };

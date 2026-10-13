@@ -16,9 +16,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm --prefix backend install
    ```
 
-2. Create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds the skills and roles, and assigns different requirements to each role. Re-running the script refreshes the built-in role-to-skill mappings.
-
-   For an existing database, run `backend/migrations/001_student_readiness.sql` once to add the profile columns used by the current API and the unique key required for skill upserts. Then run `backend/schema.sql` to create any missing tables and refresh the catalogue seeds.
+2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds the skills and roles, and installs the assessment catalogue. For an existing database, apply `backend/migrations/001_student_readiness.sql` and then `backend/migrations/002_assessments.sql`. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
 
 3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET`.
 
@@ -42,7 +40,25 @@ Choose **Instant Demo Access** on Login or Signup, or use the home page demo act
 - `GET|PUT /api/student/target-role`, `GET /api/student/gaps`, `GET /api/student/readiness`
 - `GET|PUT /api/student/milestones`
 - `POST /api/ai/simulate`, `POST /api/ai/analyze-resume`
+- `GET /api/assessments`, `GET /api/assessments/:assessmentId`
+- `POST /api/assessments/:assessmentId/submit`, `GET /api/assessments/results`, `GET /api/assessments/results/:resultId`
 - `GET /api/health`
+
+## Project progress
+
+### Phase 10 — Assessments (implemented)
+
+- The dashboard includes an assessment catalogue, multiple-choice assessment flow, immediate answer review, and saved attempt history.
+- Assessments, questions, attempts, and per-question answers are stored in MySQL. Attempts are scoped to the authenticated user.
+- Correct options and explanations are never included in the question-fetch response. The API validates the complete answer set, grades it against database answers, and persists the score in a transaction.
+- Assessment results are diagnostic only and do not silently change the student's self-reported skill levels or career-readiness score.
+- The initial seeded catalogue contains a 10-question Computer Science Fundamentals assessment.
+
+The migration upgrades the original assessment tables in place and preserves their rows. A fresh database created from `backend/schema.sql` includes the assessment tables and starter assessment.
+
+### Next phase — Phase 11: Personalized learning roadmap
+
+Generate a persistent, user-specific roadmap from selected career-role skill gaps. Prioritize missing and below-target skills, create ordered milestones with clear outcomes, and let students track progress. Assessment history can inform prioritization, while leaving skill proficiency unchanged unless the student explicitly updates it.
 
 The root `npm run build` command builds the frontend for production.
 

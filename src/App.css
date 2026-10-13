@@ -10,6 +10,47 @@
   transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Assessments */
+.assessments-pane { padding-bottom: 36px; }
+.assessments-header { align-items: center; }
+.assessment-back-btn { display: inline-flex; align-items: center; gap: 7px; border: 0; padding: 0; margin-bottom: 14px; color: var(--accent-cyan, #66e4e8); background: transparent; cursor: pointer; font: inherit; }
+.assessment-score-badge { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border: 1px solid rgba(102, 228, 232, .35); border-radius: 14px; color: #76edf0; font-size: 1.35rem; font-weight: 750; background: rgba(30, 177, 184, .1); }
+.assessment-catalog-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); gap: 16px; }
+.assessment-catalog-card, .assessment-question, .assessment-review-card { min-width: 0; border: 1px solid rgba(148, 163, 184, .18); border-radius: 16px; background: rgba(15, 23, 42, .55); }
+.assessment-catalog-card { padding: 21px; }
+.assessment-card-icon { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 14px; border-radius: 12px; color: #72e4e8; background: rgba(34, 211, 238, .1); }
+.assessment-category { color: #72e4e8; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.assessment-catalog-card h3 { margin: 8px 0; color: #f1f5f9; }
+.assessment-catalog-card p, .assessment-history p { color: #aab8cc; line-height: 1.6; }
+.assessment-card-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 20px; color: #aab8cc; font-size: .9rem; }
+.assessment-card-footer .primary-btn { padding: 9px 16px; }
+.assessment-history { margin-top: 32px; }
+.assessment-history h3 { color: #f1f5f9; }
+.assessment-history-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid rgba(148, 163, 184, .15); }
+.assessment-history-row div { display: grid; gap: 4px; }
+.assessment-history-row strong { color: #e2e8f0; }
+.assessment-history-row span { color: #aab8cc; font-size: .88rem; }
+.assessment-history-row .assessment-history-score { color: #72e4e8; font-size: 1rem; font-weight: 700; }
+.assessment-question-list, .assessment-review-list { display: grid; gap: 16px; }
+.assessment-question { padding: 20px; }
+.assessment-question legend { width: 100%; padding: 0 0 14px; color: #f1f5f9; font-size: 1rem; font-weight: 650; line-height: 1.55; }
+.assessment-question legend span { display: inline-grid; place-items: center; width: 31px; height: 28px; margin-right: 10px; border-radius: 8px; color: #72e4e8; background: rgba(34, 211, 238, .1); font-size: .77rem; }
+.assessment-options { display: grid; gap: 9px; }
+.assessment-option { display: flex; align-items: center; gap: 10px; padding: 11px 13px; border: 1px solid rgba(148, 163, 184, .17); border-radius: 10px; color: #cbd5e1; cursor: pointer; transition: border-color .15s, background .15s; }
+.assessment-option:hover, .assessment-option.selected { border-color: rgba(102, 228, 232, .6); background: rgba(34, 211, 238, .08); }
+.assessment-option input { accent-color: #22d3ee; }
+.assessment-submit-btn { margin-top: 20px; display: inline-flex; align-items: center; gap: 8px; }
+.assessment-review-card { padding: 18px 20px; }
+.assessment-review-title { display: flex; align-items: flex-start; gap: 10px; color: #f1f5f9; line-height: 1.5; }
+.assessment-correct { flex: 0 0 auto; color: #4ade80; }
+.assessment-incorrect { flex: 0 0 auto; color: #fb7185; }
+.assessment-review-card p { margin: 10px 0 0; color: #cbd5e1; }
+.assessment-review-card .assessment-explanation { color: #9fb0c6; }
+.assessment-error { margin: 12px 0; color: #fda4af; }
+.assessments-empty, .assessments-loading { display: grid; justify-items: center; gap: 10px; padding: 60px 20px; color: #aab8cc; text-align: center; }
+.assessments-empty h3 { margin: 4px 0 0; color: #f1f5f9; }
+.assessments-empty p { margin: 0; }
+
 .animated-section.visible {
   opacity: 1;
   transform: translateY(0);

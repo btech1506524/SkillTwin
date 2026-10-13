@@ -4,13 +4,14 @@ import {
   Brain, Target, TrendingUp, FileText, CheckCircle2, Circle, AlertCircle, 
   Sparkles, Award, ArrowUpRight, BarChart3, BookOpen, Layers, 
   Cpu, Database, Shield, Code, ChevronRight, Sliders, Play, RotateCcw,
-  User, GraduationCap, Building2, Check, RefreshCw
+  User, GraduationCap, Building2, Check, RefreshCw, ClipboardCheck
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ParticleBackground from '../components/ParticleBackground';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
+import AssessmentsPanel from '../components/AssessmentsPanel';
 
 export default function Dashboard() {
   const { user, updateSkill, toggleMilestone, updateTargetRole, refreshCareerReadiness } = useAuth();
@@ -350,6 +351,14 @@ export default function Dashboard() {
               <span>8-Week Semester Roadmap</span>
             </button>
 
+            <button
+              className={`tab-btn ${activeTab === 'assessments' ? 'active' : ''}`}
+              onClick={() => setActiveTab('assessments')}
+            >
+              <ClipboardCheck size={17} />
+              <span>Assessments</span>
+            </button>
+
             <button 
               className={`tab-btn ${activeTab === 'simulator' ? 'active' : ''}`}
               onClick={() => setActiveTab('simulator')}
@@ -475,6 +484,8 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            {activeTab === 'assessments' && <AssessmentsPanel />}
 
             {/* TAB 3: CAREER SIMULATOR */}
             {activeTab === 'simulator' && (
