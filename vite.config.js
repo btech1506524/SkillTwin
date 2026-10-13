@@ -8,6 +8,10 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_DEV_API_PROXY || 'http://localhost:5001',
         changeOrigin: true
+      },
+      '/admin': {
+        target: process.env.VITE_DEV_API_PROXY || 'http://localhost:5001',
+        changeOrigin: true
       }
     }
   },

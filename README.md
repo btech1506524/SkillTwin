@@ -27,7 +27,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm run dev
    ```
 
-   The API listens on port 5001 and Vite on port 5173. The frontend calls `/api` on the same origin; Vite proxies that path to the local API during development. Set `VITE_DEV_API_PROXY` if the local backend uses another address.
+   The API listens on port 5001 and Vite on port 5173. Vite proxies `/api` and `/admin` to the local API during development. Set `VITE_DEV_API_PROXY` if the local backend uses another address.
 
 ## Demo access
 
@@ -48,17 +48,17 @@ Choose **Instant Demo Access** on Login or Signup, or use the home page demo act
 
 ## Admin console
 
-The `/admin` console requires a normal account that has been explicitly promoted to the `admin` role. New accounts are always students; there is no default or public admin password. After creating the intended administrator account, apply migration `005_admin_access.sql` and promote that account through the private database console:
+The backend serves the interactive admin dashboard at `https://<backend-host>/admin`; the student frontend and API remain separate deployments. The dashboard signs in through the normal auth API, requires an account explicitly promoted to the `admin` role, and uses server-checked admin APIs. The frontend `/admin` path redirects to the backend dashboard. There is no default or public admin password. Apply migration `005_admin_access.sql` and promote the intended administrator through the private database console:
 
 ```sql
 UPDATE users SET account_role = 'admin' WHERE email = 'admin@example.com';
 ```
 
-The account must sign out and back in to refresh the UI role. The API also checks the current role in MySQL on each admin request, so changing a role takes effect server-side immediately. Admins can search and inspect all student profiles, view skills, roadmap history, milestones and assessment attempts, change other accounts between student/admin, and browse paginated records in every table in the configured SkillTwin database. Table browsing is read-only, and fields matching password, secret, token, API-key, credential, salt, private-key, and resume-text names are excluded. The console does not expose arbitrary SQL, credentials, or other MySQL schemas. At least one admin account must remain; an admin cannot change their own role.
+The API checks the current role in MySQL on each admin request. Admins can search and inspect profiles, view skills, roadmap history, milestones and assessment attempts, change other accounts between student/admin, and browse paginated records in the configured SkillTwin database. Table browsing is read-only; password hashes and fields matching secret, token, API-key, credential, salt, private-key, and resume-text names are excluded. Arbitrary SQL and other MySQL schemas are not exposed. At least one admin account must remain; an admin cannot change their own role. Locally, open `http://localhost:5001/admin` or `http://localhost:5173/admin`.
 
-## Render: serve the admin UI with the API
+## Separate frontend and backend
 
-The Render Blueprint builds the frontend and backend in the same service, and Express serves the generated `dist/` files plus `/api/*` from one origin. Use the repository root as **Root Directory** for a manual Render service. Use **Build Command** `npm ci && npm --prefix backend ci && npm run build && npm --prefix backend run build`, **Start Command** `npm --prefix backend start`, and **Health Check Path** `/api/health/live`. Set `CLIENT_ORIGIN` to the exact HTTPS origin of the Render service. Run migration `005_admin_access.sql` on the production database and promote the administrator account using the SQL above.
+The Render Blueprint defines separate services: a static Vite student frontend and an Express API service that serves its own admin dashboard at `/admin`. The API service does not build or host the student frontend. The frontend's `/admin` route redirects to the configured backend dashboard URL.
 
 ## Project progress
 
@@ -130,14 +130,21 @@ The root `npm run build` command builds the frontend for production.
 
 ## Production deployment
 
-The recommended Render deployment builds `dist/` and runs the API in one Node.js web service; Express serves the frontend and `/api/*` from the same origin. Alternatively, deploy `dist/` to an HTTPS static host and run `backend/` separately, with `/api/*` forwarded to the API and SPA history fallback enabled. For a separately hosted API, set `VITE_API_BASE_URL` at build time and `CLIENT_ORIGIN` to the exact frontend origin(s).
+Deploy the React/Vite student frontend as a static site and the Express API/admin dashboard as a separate Node web service. The root `render.yaml` defines both services. The API serves `/api/*` plus its own `/admin` dashboard and does not serve the student frontend. Set `VITE_API_BASE_URL` and `VITE_ADMIN_URL` for the frontend build, and set backend `CLIENT_ORIGIN` to the exact HTTPS frontend origin.
 
 Set `NODE_ENV=production`, `PORT`, `JWT_SECRET` (at least 32 randomly generated characters), `CLIENT_ORIGIN` (comma-separated HTTPS origins, no wildcards), and `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, and `DB_PORT`. Production startup rejects missing secrets/database settings, insecure client origins, and database TLS disabled. Set `DB_SSL=true`; when the database provider requires a private CA, set `DB_SSL_CA` to its CA bundle path. Use a dedicated least-privilege database account and keep credentials in the deployment secret store, never in the repository.
 
-Apply schema/migrations before deploying. Keep MySQL on a private network, enable encrypted database backups and restore procedures, and configure request rate limits for `/api/auth/login` and `/api/auth/register` at the trusted ingress or API gateway (especially when running multiple API instances). Terminate HTTPS at a trusted load balancer, set its security headers/HSTS policy, and expose `/api/health/live` for liveness plus `/api/health/ready` for database readiness. The API bounds JSON bodies to 64 KB and drains connections on SIGTERM/SIGINT. For the shared Render service, build with `npm run build` and `npm --prefix backend run build`, then start with `npm --prefix backend start`.
+Apply schema/migrations before deploying. Keep MySQL on a private network, enable encrypted database backups and restore procedures, and configure request rate limits for `/api/auth/login` and `/api/auth/register` at the trusted ingress or API gateway (especially when running multiple API instances). Terminate HTTPS at a trusted load balancer, set its security headers/HSTS policy, and expose `/api/health/live` for liveness plus `/api/health/ready` for database readiness. The API bounds JSON bodies to 64 KB and drains connections on SIGTERM/SIGINT.
 
-### Render service
+### Render services
 
-For a manual Render Web Service, use the repository root as **Root Directory**, **Build Command** `npm ci && npm --prefix backend ci && npm run build && npm --prefix backend run build`, **Start Command** `npm --prefix backend start`, and **Health Check Path** `/api/health/live`. The root Blueprint in `render.yaml` applies this configuration, generates `JWT_SECRET`, and prompts for database credentials and `CLIENT_ORIGIN`.
+The Render Blueprint defines a backend web service and a separate frontend static site. For manual setup:
+
+| Service | Root Directory | Build Command | Start / Publish | Required settings |
+| --- | --- | --- | --- | --- |
+| `skilltwin-api` Web Service | `backend` | `npm ci && npm run build` | `npm start` | Health check `/api/health/live`; set `CLIENT_ORIGIN` to the exact frontend HTTPS origin, plus production database and JWT secrets. |
+| `skilltwin-frontend` Static Site | repository root | `npm ci && npm run build` | Publish `dist` | Set `VITE_API_BASE_URL` to `https://<backend-host>/api` and `VITE_ADMIN_URL` to `https://<backend-host>/admin`; configure SPA rewrite `/*` → `/index.html`. |
+
+Use the actual Render hostnames after the services are created. The Blueprint prompts for frontend API/admin URLs, backend `CLIENT_ORIGIN`, and database credentials. The API installs from `backend/package-lock.json`; the frontend installs from the root `package-lock.json`.
 
 The gap response lists every skill required by the selected role, including skills the student has not recorded. Readiness is the unweighted sum of each current score capped at that skill's required score, divided by the sum of all required scores. Missing skills count as zero. The resume analyzer and career simulator currently use local deterministic rules; neither calls an external AI model.

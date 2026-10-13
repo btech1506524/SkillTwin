@@ -2,7 +2,6 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const fs = require("fs");
 const path = require("path");
 const db = require("./db");
 
@@ -103,13 +102,12 @@ app.use("/api/admin", adminRoutes);
 
 app.use("/api", (req, res) => res.status(404).json({ success: false, message: "API endpoint not found." }));
 
-const frontendDist = path.resolve(__dirname, "../dist");
-if (fs.existsSync(path.join(frontendDist, "index.html"))) {
-  app.use(express.static(frontendDist, { index: false, maxAge: isProduction ? "1h" : 0 }));
-  app.get(/.*/, (req, res) => res.sendFile(path.join(frontendDist, "index.html")));
-} else {
-  app.get("/", (req, res) => res.json({ service: "SkillTwin AI Backend API", status: "online" }));
-}
+const adminDashboard = path.join(__dirname, "admin-dashboard");
+app.get(["/", "/admin", "/admin/"], (req, res) => {
+  res.sendFile(path.join(adminDashboard, "index.html"));
+});
+app.use("/admin", express.static(adminDashboard, { index: false, maxAge: isProduction ? "1h" : 0 }));
+app.use((req, res) => res.status(404).type("text").send("Not found."));
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
