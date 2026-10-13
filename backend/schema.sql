@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS users (
   cgpa DECIMAL(3,2) NULL,
   readiness_score TINYINT UNSIGNED NOT NULL DEFAULT 0,
   graduation_year SMALLINT UNSIGNED NULL,
+  account_role ENUM('student', 'admin') NOT NULL DEFAULT 'student',
+  KEY idx_users_account_role (account_role),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

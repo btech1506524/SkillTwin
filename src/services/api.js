@@ -203,5 +203,36 @@ export const apiService = {
     } catch (err) {
       return { success: false, message: err.response?.data?.message || 'Unable to update this milestone.' };
     }
+  },
+
+  getAdminOverview: async () => {
+    try { return (await apiClient.get('/admin/overview')).data; }
+    catch (err) { return { success: false, message: err.response?.data?.message || 'Unable to load admin overview.' }; }
+  },
+
+  getAdminUsers: async ({ page = 1, limit = 25, search = '', role = '' } = {}) => {
+    try {
+      return (await apiClient.get('/admin/users', { params: { page, limit, search, ...(role ? { role } : {}) } })).data;
+    } catch (err) { return { success: false, message: err.response?.data?.message || 'Unable to load users.' }; }
+  },
+
+  getAdminUser: async (userId) => {
+    try { return (await apiClient.get(`/admin/users/${encodeURIComponent(userId)}`)).data; }
+    catch (err) { return { success: false, message: err.response?.data?.message || 'Unable to load user details.' }; }
+  },
+
+  setAdminUserRole: async (userId, accountRole) => {
+    try { return (await apiClient.patch(`/admin/users/${encodeURIComponent(userId)}/role`, { accountRole })).data; }
+    catch (err) { return { success: false, message: err.response?.data?.message || 'Unable to update account role.' }; }
+  },
+
+  getAdminTables: async () => {
+    try { return (await apiClient.get('/admin/database/tables')).data; }
+    catch (err) { return { success: false, message: err.response?.data?.message || 'Unable to load database tables.' }; }
+  },
+
+  getAdminTableRows: async (tableName, page = 1, limit = 25) => {
+    try { return (await apiClient.get(`/admin/database/tables/${encodeURIComponent(tableName)}`, { params: { page, limit } })).data; }
+    catch (err) { return { success: false, message: err.response?.data?.message || 'Unable to read this table.' }; }
   }
 };

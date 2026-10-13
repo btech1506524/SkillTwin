@@ -56,6 +56,13 @@ export default function Navbar() {
                 <span>Dashboard</span>
               </Link>
 
+              {user.accountRole === 'admin' && (
+                <Link to="/admin" className="dashboard-nav-btn" onClick={() => setMenuOpen(false)}>
+                  <Sparkles size={16} />
+                  <span>Admin</span>
+                </Link>
+              )}
+
               <div className="user-profile-badge">
                 <div className="user-avatar-mini">
                   <User size={14} />

@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import Admin from "./pages/Admin";
 
 // ERR-019 & ERR-021 FIX: Protected Route component guarding /dashboard
 function ProtectedRoute({ children }) {
@@ -14,6 +15,13 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
+  return children;
+}
+
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.accountRole !== "admin") return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -34,6 +42,7 @@ export default function App() {
               </ProtectedRoute>
             } 
           />
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

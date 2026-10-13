@@ -30,6 +30,7 @@ const DEFAULT_DEMO_STUDENT = {
 const normalizeUser = (user) => ({
   ...DEFAULT_DEMO_STUDENT,
   ...user,
+  accountRole: user?.accountRole === 'admin' ? 'admin' : 'student',
   skills: { ...DEFAULT_DEMO_STUDENT.skills, ...(user?.skills || {}) },
   completedMilestones: user?.completedMilestones || []
 });

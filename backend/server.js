@@ -2,6 +2,8 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 const db = require("./db");
 
 const authRoutes = require("./routes/auth");
@@ -9,6 +11,7 @@ const studentRoutes = require("./routes/student");
 const aiRoutes = require("./routes/ai");
 const assessmentRoutes = require("./routes/assessments");
 const roadmapRoutes = require("./routes/roadmap");
+const adminRoutes = require("./routes/admin");
 
 const app = express();
 const PORT = Number(process.env.PORT || 5001);
@@ -56,8 +59,10 @@ app.use((req, res, next) => {
   next();
 });
 
-const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
-  .split(",").map(value => value.trim()).filter(Boolean);
+const allowedOrigins = [
+  ...(process.env.CLIENT_ORIGIN || "http://localhost:5173").split(",").map(value => value.trim()).filter(Boolean),
+  ...(process.env.RENDER_EXTERNAL_URL ? [process.env.RENDER_EXTERNAL_URL] : [])
+];
 app.use(cors({
   origin(origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
@@ -68,7 +73,6 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "64kb" }));
 
-app.get("/", (req, res) => res.json({ service: "SkillTwin AI Backend API", status: "online" }));
 app.get("/api/health/live", (req, res) => res.json({ status: "online" }));
 app.get("/api/health/ready", async (req, res) => {
   try {
@@ -95,8 +99,18 @@ app.use("/api/student", studentRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/assessments", assessmentRoutes);
 app.use("/api/roadmap", roadmapRoutes);
+app.use("/api/admin", adminRoutes);
 
-app.use((req, res) => res.status(404).json({ success: false, message: "API endpoint not found." }));
+app.use("/api", (req, res) => res.status(404).json({ success: false, message: "API endpoint not found." }));
+
+const frontendDist = path.resolve(__dirname, "../dist");
+if (fs.existsSync(path.join(frontendDist, "index.html"))) {
+  app.use(express.static(frontendDist, { index: false, maxAge: isProduction ? "1h" : 0 }));
+  app.get(/.*/, (req, res) => res.sendFile(path.join(frontendDist, "index.html")));
+} else {
+  app.get("/", (req, res) => res.json({ service: "SkillTwin AI Backend API", status: "online" }));
+}
+
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
   if (error.type === "entity.too.large") {

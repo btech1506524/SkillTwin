@@ -4,7 +4,7 @@
   "description": "SkillTwin AI Backend",
   "main": "server.js",
   "scripts": {
-    "build": "node --check server.js && node --check db.js && node --check routes/auth.js && node --check routes/student.js && node --check routes/ai.js && node --check routes/assessments.js && node --check routes/roadmap.js && node --check middleware/authMiddleware.js",
+    "build": "node --check server.js && node --check db.js && node --check routes/auth.js && node --check routes/student.js && node --check routes/ai.js && node --check routes/assessments.js && node --check routes/roadmap.js && node --check routes/admin.js && node --check middleware/authMiddleware.js && node --check middleware/adminMiddleware.js",
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
