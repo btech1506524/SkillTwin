@@ -4,7 +4,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
 
 ## Requirements
 
-- Node.js 18 or newer
+- Node.js 22 or newer (Node 22–24 supported)
 - MySQL 8 (for persistent accounts)
 
 ## Start the app
@@ -122,7 +122,7 @@ The repository-wide review found and fixed these issues:
 - Removed unsupported claims about AI career chat, university curriculum alignment, student testimonials, and placement/recruitment benchmarks. Resume analysis is deterministic text-keyword matching; assessments and projections are rule-based.
 - Production configuration now rejects malformed client origins and invalid API ports.
 
-The production database connection, migrations, account flow, and saved roadmap still require verification against a provisioned MySQL 8 service. This repository does not include a running database or deployment credentials, so that live integration check cannot be completed locally. Configure SPA history fallback on any static host other than Netlify as well.
+The production database connection, migrations, account flow, and saved roadmap still require verification against a provisioned MySQL 8 service. This repository does not include a running database or deployment credentials, so that live integration check cannot be completed locally. Vercel SPA deep links are configured by the root `vercel.json`; the `public/_redirects` file is for Netlify deployments.
 
 The frontend production build and backend source checks are run as part of this audit. They do not replace the pending live MySQL/deployment verification.
 
@@ -130,7 +130,7 @@ The root `npm run build` command builds the frontend for production.
 
 ## Production deployment
 
-Deploy the React/Vite student frontend to Vercel and the Express API/admin dashboard to Render. The root `render.yaml` defines the Render backend only. The API serves `/api/*` plus its own `/admin` dashboard and does not serve the student frontend. Set Vercel's build-time `VITE_API_BASE_URL` and `VITE_ADMIN_URL`, and set Render's `CLIENT_ORIGIN` to the exact HTTPS Vercel origin.
+Deploy the React/Vite student frontend to Vercel and the Express API/admin dashboard to Render. The root `render.yaml` defines the Render backend only. The API serves `/api/*` plus its own `/admin` dashboard and does not serve the student frontend. Set Vercel's build-time `VITE_API_BASE_URL` and `VITE_ADMIN_URL`, and set Render's `CLIENT_ORIGIN` to the exact HTTPS Vercel origin. `vercel.json` enables SPA deep links and applies baseline browser security headers.
 
 Set `NODE_ENV=production`, `PORT`, `JWT_SECRET` (at least 32 randomly generated characters), `CLIENT_ORIGIN` (comma-separated HTTPS origins, no wildcards), and `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, and `DB_PORT`. Production startup rejects missing secrets/database settings, insecure client origins, and database TLS disabled. Set `DB_SSL=true`; when the database provider requires a private CA, set `DB_SSL_CA` to its CA bundle path. Use a dedicated least-privilege database account and keep credentials in the deployment secret store, never in the repository.
 
@@ -138,10 +138,10 @@ Apply schema/migrations before deploying. Keep MySQL on a private network, enabl
 
 ### Vercel frontend
 
-Use the repository root as the project root, `npm ci` as the install command, `npm run build` as the build command, and `dist` as the output directory. Set `VITE_API_BASE_URL=https://<render-backend-host>/api` and `VITE_ADMIN_URL=https://<render-backend-host>/admin`. Use the actual deployed hostnames.
+Use the repository root as the project root, `npm ci` as the install command, `npm run build` as the build command, and `dist` as the output directory. Node.js 22–24 is supported. Set `VITE_API_BASE_URL=https://<render-backend-host>/api` and `VITE_ADMIN_URL=https://<render-backend-host>/admin`. Use the actual deployed hostnames.
 
 ### Render backend
 
-The Render Blueprint defines only the backend web service. For a manual Render Web Service, use **Root Directory** `backend`, **Build Command** `npm ci && npm run build`, **Start Command** `npm start`, and **Health Check Path** `/api/health/live`. Set `CLIENT_ORIGIN` to the exact Vercel production origin (no path or trailing slash), plus the production database and JWT secrets. The API installs from `backend/package-lock.json`.
+The Render Blueprint defines only the backend web service. For a manual Render Web Service, use **Root Directory** `backend`, **Build Command** `npm ci && npm run build`, **Start Command** `npm start`, and **Health Check Path** `/api/health/live`. Node.js 22–24 is supported. Set `CLIENT_ORIGIN` to the exact Vercel production origin (no path or trailing slash), plus the production database and JWT secrets. The API installs from `backend/package-lock.json`.
 
 The gap response lists every skill required by the selected role, including skills the student has not recorded. Readiness is the unweighted sum of each current score capped at that skill's required score, divided by the sum of all required scores. Missing skills count as zero. The resume analyzer and career simulator currently use local deterministic rules; neither calls an external AI model.
