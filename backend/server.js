@@ -6,6 +6,7 @@ const path = require("path");
 const db = require("./db");
 
 const authRoutes = require("./routes/auth");
+const oauthRoutes = require("./routes/oauth");
 const studentRoutes = require("./routes/student");
 const aiRoutes = require("./routes/ai");
 const assessmentRoutes = require("./routes/assessments");
@@ -103,6 +104,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/auth/oauth", oauthRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/assessments", assessmentRoutes);

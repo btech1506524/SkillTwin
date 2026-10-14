@@ -7,7 +7,7 @@
     "node": ">=22 <25"
   },
   "scripts": {
-    "build": "node --check server.js && node --check admin-dashboard/dashboard.js && node --check db.js && node --check routes/auth.js && node --check routes/student.js && node --check routes/ai.js && node --check routes/assessments.js && node --check routes/roadmap.js && node --check routes/admin.js && node --check middleware/authMiddleware.js && node --check middleware/adminMiddleware.js",
+    "build": "node --check server.js && node --check admin-dashboard/dashboard.js && node --check db.js && node --check routes/auth.js && node --check routes/oauth.js && node --check routes/student.js && node --check routes/ai.js && node --check routes/assessments.js && node --check routes/roadmap.js && node --check routes/admin.js && node --check middleware/authMiddleware.js && node --check middleware/adminMiddleware.js",
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
@@ -16,6 +16,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
+    "jose": "^6.2.12",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.4"
   }

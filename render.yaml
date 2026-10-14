@@ -13,6 +13,20 @@ services:
         generateValue: true
       - key: CLIENT_ORIGIN
         sync: false
+      - key: OAUTH_FRONTEND_URL
+        value: https://skill-twin-orpin.vercel.app
+      - key: OAUTH_BACKEND_URL
+        value: https://skilltwin-l25l.onrender.com
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_TENANT_ID
+        value: common
       - key: DB_HOST
         value: iriguchi.proxy.rlwy.net
       - key: DB_USER

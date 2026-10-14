@@ -16,7 +16,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm --prefix backend install
    ```
 
-2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds skills and roles, and installs the assessment, roadmap, admin, and audit tables. For an existing database, select the target schema and apply migrations `001_student_readiness.sql` through `006_admin_audit_log.sql` in order (for example, `mysql -u root -p skilltwin < backend/migrations/001_student_readiness.sql`). Migration files do not select a schema for you. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
+2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds skills and roles, and installs the assessment, roadmap, admin, audit, and OAuth tables. For an existing database, select the target schema and apply migrations `001_student_readiness.sql` through `007_oauth_login.sql` in order (for example, `mysql -u root -p skilltwin < backend/migrations/001_student_readiness.sql`). Migration files do not select a schema for you. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
 
 3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET` (at least 32 characters for production).
 
@@ -36,6 +36,7 @@ Choose **Instant Demo Access** on Login or Signup, or use the home page demo act
 ## API overview
 
 - `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/profile`
+- `POST /api/auth/oauth/:provider/start`, `POST /api/auth/oauth/:provider/link`, `GET /api/auth/oauth/:provider/callback`, `POST /api/auth/oauth/exchange`
 - `GET /api/student/profile`, `GET|PUT /api/student/skills`
 - `GET|PUT /api/student/target-role`, `GET /api/student/gaps`, `GET /api/student/readiness`
 - `GET|PUT /api/student/milestones`
@@ -149,3 +150,14 @@ Use the repository root as the project root, `npm ci` as the install command, `n
 The Render Blueprint defines only the backend web service. For a manual Render Web Service, use **Root Directory** `backend`, **Build Command** `npm ci && npm run build`, **Start Command** `npm start`, and **Health Check Path** `/api/health/live`. Node.js 22–24 is supported. Set `CLIENT_ORIGIN` to `https://skill-twin-orpin.vercel.app` (no path or trailing slash), and set `DB_USER` and `DB_PASS` from Railway. The Blueprint sets the Railway public TCP host, port, schema, and CA bundle path. The API installs from `backend/package-lock.json`.
 
 The gap response lists every skill required by the selected role, including skills the student has not recorded. Readiness is the unweighted sum of each current score capped at that skill's required score, divided by the sum of all required scores. Missing skills count as zero. The resume analyzer and career simulator currently use local deterministic rules; neither calls an external AI model.
+
+### Google and Microsoft sign-in
+
+The login and registration pages support Google OpenID Connect and Microsoft identity platform sign-in. Configure a Google OAuth web client and a Microsoft Entra app registration, then set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MICROSOFT_CLIENT_ID`, and `MICROSOFT_CLIENT_SECRET` in Render. Set the Microsoft app's supported account types to organizational and personal Microsoft accounts; `MICROSOFT_TENANT_ID=common` enables both. Keep client secrets only in Render's secret environment variables.
+
+Register these exact Web redirect URIs with the identity providers:
+
+- Google: `https://skilltwin-l25l.onrender.com/api/auth/oauth/google/callback`
+- Microsoft: `https://skilltwin-l25l.onrender.com/api/auth/oauth/microsoft/callback`
+
+Set `OAUTH_BACKEND_URL=https://skilltwin-l25l.onrender.com` and `OAUTH_FRONTEND_URL=https://skill-twin-orpin.vercel.app`. For local development, use the local API and frontend origins instead. Apply migration `007_oauth_login.sql` before enabling provider credentials. OAuth-only accounts receive random non-recoverable password hashes; existing password accounts are never merged solely by matching email. Sign into an existing account first and connect the provider from its dashboard.

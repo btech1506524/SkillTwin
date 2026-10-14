@@ -109,6 +109,16 @@ export function AuthProvider({ children }) {
     return { success: false, message: apiRes?.message || 'Unable to sign in right now. Please try again.' };
   };
 
+  const completeOAuthLogin = async (code) => {
+    const apiRes = await apiService.exchangeOAuthCode(code);
+    if (!apiRes?.success || !apiRes.user || !apiRes.token) {
+      return { success: false, message: apiRes?.message || 'Unable to complete sign-in. Please try again.' };
+    }
+    localStorage.setItem('skilltwin_token', apiRes.token);
+    setUser(normalizeUser(apiRes.user));
+    return { success: true };
+  };
+
   const loginDemo = async () => {
     localStorage.removeItem('skilltwin_token');
     setUser(DEFAULT_DEMO_STUDENT);
@@ -284,6 +294,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user,
       login,
+      completeOAuthLogin,
       loginDemo,
       signup,
       logout,

@@ -12,6 +12,7 @@ import ParticleBackground from '../components/ParticleBackground';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import AssessmentsPanel from '../components/AssessmentsPanel';
+import OAuthButtons from '../components/OAuthButtons';
 
 const summarizeRoadmapItems = (items) => {
   const completed = items.filter(item => item.status === 'completed').length;
@@ -312,6 +313,16 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
+
+        {localStorage.getItem('skilltwin_token') && (
+          <section className="oauth-link-panel" aria-labelledby="oauth-link-title">
+            <div>
+              <h2 id="oauth-link-title">Sign-in methods</h2>
+              <p>Connect Google or Microsoft to this SkillTwin account. Existing accounts are never merged by email alone.</p>
+            </div>
+            <OAuthButtons mode="link" />
+          </section>
+        )}
 
         {/* KEY PERFORMANCE METRICS */}
         <section className="dashboard-metrics-grid">

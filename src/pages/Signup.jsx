@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles, GraduationCap, Target, Zap, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import OAuthButtons from '../components/OAuthButtons';
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
@@ -218,6 +219,8 @@ export default function Signup() {
                 {loading ? 'Building Twin...' : <><span>Initialize Career Twin</span> <ArrowRight size={18} /></>}
               </button>
             </form>
+
+            <OAuthButtons />
 
             <div className="auth-divider"><span>or test directly</span></div>
 

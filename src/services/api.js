@@ -53,6 +53,32 @@ export const apiService = {
     }
   },
 
+  beginOAuth: async (provider, link = false) => {
+    try {
+      const action = link ? 'link' : 'start';
+      const response = await apiClient.post(`/auth/oauth/${provider}/${action}`);
+      return response.data;
+    } catch (err) {
+      return {
+        success: false,
+        code: err.response?.data?.code || 'oauth_unavailable',
+        message: err.response?.data?.message
+      };
+    }
+  },
+
+  exchangeOAuthCode: async (code) => {
+    try {
+      const response = await apiClient.post('/auth/oauth/exchange', { code });
+      return response.data;
+    } catch (err) {
+      return {
+        success: false,
+        message: err.response?.data?.message || 'Unable to complete sign-in. Please try again.'
+      };
+    }
+  },
+
   // ERR-013 FIX: Same distinction as login — null means offline, object means server error
   register: async (userData) => {
     try {

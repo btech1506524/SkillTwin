@@ -1,7 +1,17 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Zap, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import OAuthButtons from '../components/OAuthButtons';
+
+const oauthMessages = {
+  account_exists: 'An account with this email already exists. Sign in with your password, then connect Google or Microsoft from your dashboard.',
+  provider_not_configured: 'This sign-in option is not configured yet. Please use email and password for now.',
+  provider_cancelled: 'Sign-in was cancelled.',
+  provider_email_unavailable: 'The provider did not share a usable email address for this account.',
+  provider_already_linked: 'That provider account is connected to a different SkillTwin account.',
+  oauth_failed: 'Sign-in could not be completed. Please try again.'
+};
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -12,6 +22,15 @@ export default function Login() {
   const [infoMsg, setInfoMsg] = useState('');
   const { login, loginDemo } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const code = searchParams.get('oauthError');
+    if (!code) return;
+    setErrorMsg(oauthMessages[code] || oauthMessages.oauth_failed);
+    searchParams.delete('oauthError');
+    setSearchParams(searchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // ERR-008 FIX: Await login async result, handle errors, show feedback
   const handleSubmit = async (e) => {
@@ -178,6 +197,8 @@ export default function Login() {
                 {loading ? 'Signing in...' : <><span>Sign In to Dashboard</span> <ArrowRight size={18} /></>}
               </button>
             </form>
+
+            <OAuthButtons />
 
             <div className="auth-divider"><span>or evaluate quickly</span></div>
 

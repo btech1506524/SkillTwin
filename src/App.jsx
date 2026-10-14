@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import OAuthCallback from "./pages/OAuthCallback";
 
 // ERR-019 & ERR-021 FIX: Protected Route component guarding /dashboard
 function ProtectedRoute({ children }) {
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/oauth/callback" element={<OAuthCallback />} />
           {/* Guarded dashboard route */}
           <Route 
             path="/dashboard" 
