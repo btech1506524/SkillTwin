@@ -16,7 +16,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm --prefix backend install
    ```
 
-2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds skills and roles, and installs the assessment, roadmap, and admin tables. For an existing database, apply migrations `001_student_readiness.sql` through `005_admin_access.sql` in order. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
+2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds skills and roles, and installs the assessment, roadmap, admin, and audit tables. For an existing database, apply migrations `001_student_readiness.sql` through `006_admin_audit_log.sql` in order. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
 
 3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET` (at least 32 characters for production).
 
@@ -43,7 +43,7 @@ Choose **Instant Demo Access** on Login or Signup, or use the home page demo act
 - `GET /api/assessments`, `GET /api/assessments/:assessmentId`
 - `POST /api/assessments/:assessmentId/submit`, `GET /api/assessments/results`, `GET /api/assessments/results/:resultId`
 - `GET /api/roadmap`, `GET /api/roadmap/progress`, `POST /api/roadmap/generate`, `PUT /api/roadmap/milestones/:milestoneId`
-- `/api/admin/*` — administrator-only overview, paginated user/profile access, account-role management, and read-only current-database table browsing
+- `/api/admin/*` — administrator-only overview and analytics, paginated user/profile access, CSV export, activity history, account-role management, and read-only current-database table browsing
 - `GET /api/health`
 
 ## Admin console
@@ -54,7 +54,7 @@ The backend serves the interactive admin dashboard at `https://<backend-host>/ad
 UPDATE users SET account_role = 'admin' WHERE email = 'admin@example.com';
 ```
 
-The API checks the current role in MySQL on each admin request. Admins can search and inspect profiles, view skills, roadmap history, milestones and assessment attempts, change other accounts between student/admin, and browse paginated records in the configured SkillTwin database. Table browsing is read-only; password hashes and fields matching secret, token, API-key, credential, salt, private-key, and resume-text names are excluded. Arbitrary SQL and other MySQL schemas are not exposed. At least one admin account must remain; an admin cannot change their own role. Locally, open `http://localhost:5001/admin` or `http://localhost:5173/admin`.
+The API checks the current role in MySQL on each admin request. Admins can search and inspect profiles, export filtered user lists to CSV, view registration/readiness analytics and an audit trail of admin sign-ins and account-role changes, view skills, roadmap history, milestones and assessment attempts, change other accounts between student/admin, and browse paginated records in the configured SkillTwin database. Table browsing is read-only; password hashes and fields matching secret, token, API-key, credential, salt, private-key, and resume-text names are excluded. Arbitrary SQL and other MySQL schemas are not exposed. At least one admin account must remain; an admin cannot change their own role. Locally, open `http://localhost:5001/admin` or `http://localhost:5173/admin`.
 
 ## Separate frontend and backend
 
@@ -103,7 +103,9 @@ Phase 12 uses the Phase 11 `roadmap_milestones` table and adds no additional dat
 
 - Adds a protected admin area for system counts, user search and profile inspection, account-role management, and read-only browsing of application database tables.
 - Backend admin routes re-check the account role against MySQL on every request. Password hashes and other secret-like columns are excluded from table views; no SQL console is exposed.
-- Existing installations need migration `005_admin_access.sql`; promote an administrator account using the procedure above.
+- Existing installations need migrations `005_admin_access.sql` and `006_admin_audit_log.sql`; promote an administrator account using the procedure above.
+- The admin overview shows student sign-up trends, readiness bands, and popular role choices. Admin sign-ins and account-role changes are recorded in `admin_audit_log` and shown in the activity view.
+- Admins can export a filtered account list to CSV. Spreadsheet formula prefixes are escaped in exported cells.
 
 ### Next suggested phase — Phase 15: Resume import and analysis history
 

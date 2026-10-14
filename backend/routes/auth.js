@@ -229,6 +229,17 @@ router.post("/login", async (req, res) => {
     );
     const [milestoneRows] = await db.query("SELECT milestone_key FROM user_milestones WHERE user_id = ?", [user.user_id]);
 
+    if (user.account_role === "admin") {
+      try {
+        await db.query(
+          "INSERT INTO admin_audit_log (actor_user_id, action) VALUES (?, 'admin.login')",
+          [user.user_id]
+        );
+      } catch (error) {
+        console.error("Admin login audit error:", error.code || error.name || "Error");
+      }
+    }
+
     // ERR-026 FIX: Return 'id' and 'name' instead of 'user_id' and 'full_name'
     // so the frontend AuthContext and Dashboard can consume them correctly.
     res.json({

@@ -62,9 +62,18 @@ const allowedOrigins = [
   ...(process.env.CLIENT_ORIGIN || "http://localhost:5173").split(",").map(value => value.trim()).filter(Boolean),
   ...(process.env.RENDER_EXTERNAL_URL ? [process.env.RENDER_EXTERNAL_URL] : [])
 ];
+function isLocalDevelopmentOrigin(origin) {
+  if (isProduction || !origin) return false;
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname) &&
+      parsed.origin === origin;
+  } catch { return false; }
+}
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin) || isLocalDevelopmentOrigin(origin)) return callback(null, true);
     const error = new Error("Origin is not allowed by CORS.");
     error.status = 403;
     callback(error);

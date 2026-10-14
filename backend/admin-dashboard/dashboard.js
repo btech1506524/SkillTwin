@@ -3,7 +3,7 @@
   const USER_KEY = 'skilltwin_admin_user';
   const app = document.querySelector('#app');
   const state = {
-    section: 'overview', overview: null, users: [], tables: [],
+    section: 'overview', overview: null, users: [], tables: [], activity: [],
     pagination: { page: 1, limit: 25, total: 0 }, usersSearch: '', usersRole: '', tablePage: 1,
     tableData: null, activeTable: '', user: null, loading: false
   };
@@ -76,12 +76,13 @@
 
   function renderShell() {
     if (!token() || !state.user) return showLogin();
-    const pageTitle = state.section === 'overview' ? 'System overview' : state.section === 'users' ? 'User management' : 'Database explorer';
+    const pageTitle = state.section === 'overview' ? 'System overview' : state.section === 'users' ? 'User management' : state.section === 'activity' ? 'Admin activity' : 'Database explorer';
     app.innerHTML = `<div class="app-shell">
       <aside class="sidebar"><a class="brand" href="/admin"><span class="brand-mark">ST</span><span><strong>SkillTwin</strong><small>ADMIN WORKSPACE</small></span></a>
       <div class="nav-label">CONTROL CENTER</div><nav aria-label="Admin sections">
         <button class="nav-button ${state.section === 'overview' ? 'active' : ''}" data-section="overview"><span class="nav-icon">▦</span>Overview</button>
         <button class="nav-button ${state.section === 'users' ? 'active' : ''}" data-section="users"><span class="nav-icon">♙</span>Users</button>
+        <button class="nav-button ${state.section === 'activity' ? 'active' : ''}" data-section="activity"><span class="nav-icon">◷</span>Activity</button>
         <button class="nav-button ${state.section === 'database' ? 'active' : ''}" data-section="database"><span class="nav-icon">▤</span>Database</button>
       </nav><div class="side-spacer"></div><div class="session-card"><span class="online-dot"></span><span><strong>${esc(state.user.name || state.user.email)}</strong><small>Administrator session</small></span></div>
       <button class="nav-button logout" data-action="logout"><span class="nav-icon">↪</span>Sign out</button></aside>
@@ -126,13 +127,53 @@
     setAlert();
     if (state.section === 'overview') await renderOverview();
     else if (state.section === 'users') await loadUsers(state.pagination.page);
+    else if (state.section === 'activity') await loadActivity();
     else await loadTables();
   }
 
   async function renderSection() {
     if (state.section === 'overview') return renderOverview();
     if (state.section === 'users') return loadUsers(1);
+    if (state.section === 'activity') return loadActivity();
     return loadTables();
+  }
+
+  function activityText(item) {
+    const actor = item.actorName || 'Administrator';
+    if (item.action === 'admin.login') return `${actor} signed in`;
+    if (item.action === 'user.role.changed') {
+      const details = item.details || {};
+      return `${actor} changed ${item.targetName || item.targetEmail || 'an account'} from ${details.fromRole || 'unknown'} to ${details.toRole || 'unknown'}`;
+    }
+    return `${actor} · ${item.action}`;
+  }
+
+  function activityMarkup(items, limit = 8) {
+    if (!items?.length) return '<p class="empty-activity">No administrator activity has been recorded yet.</p>';
+    return `<ol class="activity-list">${items.slice(0, limit).map(item => `<li><span class="activity-marker">${item.action === 'admin.login' ? '↗' : '♙'}</span><div><strong>${esc(activityText(item))}</strong><small>${esc(new Date(item.createdAt).toLocaleString())}</small></div></li>`).join('')}</ol>`;
+  }
+
+  function dateKey(dateValue) {
+    return `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
+  }
+
+  function signupTrendMarkup(rows = []) {
+    const totals = new Map(rows.map(row => [row.day, Number(row.total)]));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const series = Array.from({ length: 30 }, (_, index) => {
+      const day = new Date(today);
+      day.setDate(day.getDate() - (29 - index));
+      const key = dateKey(day);
+      return { key, total: totals.get(key) || 0, label: day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) };
+    });
+    const max = Math.max(1, ...series.map(item => item.total));
+    return `<div class="trend-chart" role="img" aria-label="New student accounts per day over the last 30 days">${series.map(item => `<span class="trend-column" title="${esc(item.label)}: ${item.total} new students"><i style="--bar-height:${Math.max(item.total ? 8 : 2, Math.round(item.total / max * 100))}%"></i></span>`).join('')}</div><div class="chart-labels"><span>${esc(series[0].label)}</span><span>New student accounts · last 30 days</span><span>${esc(series.at(-1).label)}</span></div>`;
+  }
+
+  function distributionMarkup(rows = [], labelKey = 'band') {
+    const max = Math.max(1, ...rows.map(row => Number(row.total)));
+    return rows.length ? `<div class="distribution-list">${rows.map(row => `<div class="distribution-row"><div><span>${esc(row[labelKey])}</span><strong>${Number(row.total).toLocaleString()}</strong></div><div class="distribution-track"><i style="--bar-width:${Math.round(Number(row.total) / max * 100)}%"></i></div></div>`).join('')}</div>` : '<p class="empty-activity">No student data yet.</p>';
   }
 
   async function renderOverview() {
@@ -141,11 +182,15 @@
     view.innerHTML = '<section class="panel"><p class="muted">Loading system overview…</p></section>';
     try {
       if (!state.overview) await loadOverview();
-      const { database = {}, stats = {} } = state.overview;
+      const { database = {}, stats = {}, analytics = {}, recentActivity = [] } = state.overview;
       view.innerHTML = `<section class="welcome"><div><p class="eyebrow">ADMINISTRATOR CONTROL CENTER</p><h2>Welcome, ${esc(state.user.name?.split(' ')[0] || 'Admin')}</h2><p>Manage SkillTwin accounts and inspect records in the configured application database.</p></div><span class="welcome-icon">⬡</span></section>
         <div class="db-strip"><span>▤</span><span>Connected schema</span><strong>${esc(database.databaseName)}</strong><span class="version">MySQL ${esc(database.serverVersion)}</span></div>
         <div class="stats-grid">${statCards.map(([key,label,icon]) => `<article class="stat-card"><span class="stat-label"><span class="stat-icon">${icon}</span>${label}</span><strong>${Number(stats[key] || 0).toLocaleString()}</strong></article>`).join('')}</div>
-        <section class="panel"><div class="panel-head"><div><h2>Quick access</h2><p>Search student accounts or browse application tables.</p></div></div><div class="shortcuts"><button class="shortcut" data-jump="users"><span>♙</span>Manage users<span>→</span></button><button class="shortcut" data-jump="database"><span>▤</span>Browse database<span>→</span></button></div></section>`;
+        <div class="analytics-grid"><section class="panel"><div class="panel-head"><div><h2>Student growth</h2><p>New student accounts recorded each day.</p></div><span class="pill">30 days</span></div>${signupTrendMarkup(analytics.newUsersByDay)}</section>
+        <section class="panel"><div class="panel-head"><div><h2>Readiness distribution</h2><p>Student scores grouped by range.</p></div></div>${distributionMarkup(analytics.readinessBands)}</section>
+        <section class="panel"><div class="panel-head"><div><h2>Popular target roles</h2><p>Most selected student career goals.</p></div></div>${distributionMarkup(analytics.topRoles, 'roleName')}</section></div>
+        <section class="panel"><div class="panel-head"><div><h2>Recent admin activity</h2><p>Sign-ins and account access changes.</p></div><button class="secondary" data-jump="activity">View all activity</button></div>${activityMarkup(recentActivity)}</section>
+        <section class="panel"><div class="panel-head"><div><h2>Quick access</h2><p>Export account data or browse application tables.</p></div></div><div class="shortcuts"><button class="shortcut" data-jump="users"><span>♙</span>Manage users<span>→</span></button><button class="shortcut" data-jump="database"><span>▤</span>Browse database<span>→</span></button></div></section>`;
       view.querySelectorAll('[data-jump]').forEach(button => button.addEventListener('click', () => selectSection(button.dataset.jump)));
     } catch {}
   }
@@ -170,7 +215,7 @@
     if (!view) return;
     const pagination = state.pagination;
     const rows = state.users.map(account => `<tr><td><strong>${esc(account.name)}</strong><small>${esc(account.email)}</small></td><td>${esc(account.college)}</td><td>${esc(account.targetRole)}</td><td><span class="score">${esc(account.readinessScore)}%</span></td><td><select class="role-select" data-role-id="${Number(account.id)}" aria-label="Set access for ${esc(account.name)}" ${Number(account.id) === Number(state.user.id) ? 'disabled' : ''}><option value="student" ${account.accountRole === 'student' ? 'selected' : ''}>Student</option><option value="admin" ${account.accountRole === 'admin' ? 'selected' : ''}>Admin</option></select></td><td>${date(account.createdAt)}</td><td><button class="link-button" data-user-id="${Number(account.id)}">Details</button></td></tr>`).join('');
-    view.innerHTML = `<section class="panel"><div class="panel-head"><div><h2>All accounts</h2><p>Search profiles, inspect student progress, and manage account access.</p></div><span class="pill">${Number(pagination.total).toLocaleString()} accounts</span></div>
+    view.innerHTML = `<section class="panel"><div class="panel-head"><div><h2>All accounts</h2><p>Search profiles, inspect student progress, and manage account access.</p></div><div class="panel-actions"><span class="pill">${Number(pagination.total).toLocaleString()} accounts</span><button class="secondary" id="export-users" type="button">Export CSV</button></div></div>
       <form id="user-filters" class="filters"><input class="filter-input" name="search" value="${esc(search === '' ? document.querySelector('#user-filters [name=search]')?.value || '' : search)}" placeholder="Name, email, college or role" aria-label="Search accounts" /><select class="filter-select" name="role" aria-label="Filter account role"><option value="" ${!role ? 'selected' : ''}>All accounts</option><option value="student" ${role === 'student' ? 'selected' : ''}>Students</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>Administrators</option></select><button class="primary" type="submit">Search</button></form>
       <div class="table-wrap"><table class="data-table"><thead><tr><th>Account</th><th>College</th><th>Target role</th><th>Readiness</th><th>Access</th><th>Created</th><th></th></tr></thead><tbody>${rows || '<tr><td class="empty" colspan="7">No accounts match this search.</td></tr>'}</tbody></table></div>
       <div class="pagination"><span>Page ${pagination.page} · ${Number(pagination.total).toLocaleString()} accounts</span><div class="page-actions"><button class="page-button" data-page="${pagination.page - 1}" ${pagination.page <= 1 ? 'disabled' : ''} aria-label="Previous page">←</button><button class="page-button" data-page="${pagination.page + 1}" ${pagination.page * pagination.limit >= pagination.total ? 'disabled' : ''} aria-label="Next page">→</button></div></div></section>`;
@@ -178,12 +223,43 @@
       event.preventDefault(); const data = new FormData(event.currentTarget);
       loadUsers(1, String(data.get('search') || '').trim(), String(data.get('role') || ''));
     });
+    view.querySelector('#export-users').addEventListener('click', exportUsers);
     view.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => {
       const form = new FormData(view.querySelector('#user-filters'));
       loadUsers(Number(button.dataset.page), String(form.get('search') || '').trim(), String(form.get('role') || ''));
     }));
     view.querySelectorAll('[data-user-id]').forEach(button => button.addEventListener('click', () => openUser(button.dataset.userId)));
     view.querySelectorAll('[data-role-id]').forEach(select => select.addEventListener('change', () => changeRole(select)));
+  }
+
+  async function exportUsers() {
+    const form = document.querySelector('#user-filters');
+    const data = new FormData(form);
+    const query = new URLSearchParams();
+    const search = String(data.get('search') || '').trim();
+    const role = String(data.get('role') || '');
+    if (search) query.set('search', search);
+    if (role) query.set('role', role);
+    try {
+      const response = await fetch(`/api/admin/users/export?${query}`, {
+        headers: { Authorization: `Bearer ${token()}` }
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || `Export failed (${response.status}).`);
+      }
+      const file = await response.blob();
+      const objectUrl = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      const filename = response.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/i)?.[1] || 'skilltwin-users.csv';
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      setAlert('Account export downloaded.', 'success');
+    } catch (error) { setAlert(error.message); }
   }
 
   async function changeRole(select) {
@@ -221,6 +297,17 @@
       modal.querySelector('[data-close]').addEventListener('click', () => modal.remove());
       modal.addEventListener('click', event => { if (event.target === modal) modal.remove(); });
       document.addEventListener('keydown', function closeOnEscape(event) { if (event.key === 'Escape') { modal.remove(); document.removeEventListener('keydown', closeOnEscape); } });
+    } catch {}
+  }
+
+  async function loadActivity() {
+    const view = document.querySelector('#view');
+    if (!view) return;
+    view.innerHTML = '<section class="panel"><p class="muted">Loading administrator activity…</p></section>';
+    try {
+      const result = await protectedRequest('/admin/activity?limit=100');
+      state.activity = result.activity || [];
+      view.innerHTML = `<section class="panel"><div class="panel-head"><div><h2>Administrator activity</h2><p>Recent successful sign-ins and account access changes.</p></div><span class="pill">${state.activity.length} events</span></div>${activityMarkup(state.activity, 100)}</section>`;
     } catch {}
   }
 

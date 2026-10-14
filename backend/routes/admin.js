@@ -19,6 +19,34 @@ function validUserId(value) {
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
+function getUserFilters(searchValue, roleValue) {
+  const search = typeof searchValue === "string" ? searchValue.trim().slice(0, 120) : "";
+  const role = ["student", "admin"].includes(roleValue) ? roleValue : null;
+  const conditions = [];
+  const values = [];
+  if (search) {
+    const term = `%${search}%`;
+    conditions.push("(full_name LIKE ? OR email LIKE ? OR college LIKE ? OR target_role LIKE ?)");
+    values.push(term, term, term, term);
+  }
+  if (role) {
+    conditions.push("account_role = ?");
+    values.push(role);
+  }
+  return { search, role, where: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "", values };
+}
+
+function csvCell(value) {
+  let text = value == null ? "" : String(value);
+  if (/^[\t\r\n ]*[=+@-]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function parseAuditDetails(value) {
+  if (typeof value !== "string") return value || null;
+  try { return JSON.parse(value); } catch { return null; }
+}
+
 router.get("/overview", async (req, res) => {
   try {
     const [users, roles, skills, userSkills, roadmaps, assessments, attempts, questions, roadmapTasks] = await Promise.all([
@@ -36,6 +64,32 @@ router.get("/overview", async (req, res) => {
       "SELECT account_role AS accountRole, COUNT(*) AS total FROM users GROUP BY account_role"
     );
     const [databaseInfo] = await db.query("SELECT DATABASE() AS databaseName, VERSION() AS serverVersion");
+    const [[newUsersByDay], [readinessBands], [topRoles], [recentActivity]] = await Promise.all([
+      db.query(
+        `SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS day, COUNT(*) AS total
+         FROM users WHERE account_role = 'student' AND created_at >= CURRENT_DATE - INTERVAL 29 DAY
+         GROUP BY DATE(created_at) ORDER BY day`
+      ),
+      db.query(
+        `SELECT CASE WHEN readiness_score < 40 THEN '0–39'
+                     WHEN readiness_score < 60 THEN '40–59'
+                     WHEN readiness_score < 80 THEN '60–79' ELSE '80–100' END AS band,
+                COUNT(*) AS total
+         FROM users WHERE account_role = 'student' GROUP BY band ORDER BY MIN(readiness_score)`
+      ),
+      db.query(
+        `SELECT target_role AS roleName, COUNT(*) AS total FROM users
+         WHERE account_role = 'student' GROUP BY target_role ORDER BY total DESC, roleName LIMIT 5`
+      ),
+      db.query(
+        `SELECT l.audit_id AS id, l.action, l.details, l.created_at AS createdAt,
+                actor.full_name AS actorName, target.full_name AS targetName
+         FROM admin_audit_log l
+         LEFT JOIN users actor ON actor.user_id = l.actor_user_id
+         LEFT JOIN users target ON target.user_id = l.target_user_id
+         ORDER BY l.created_at DESC, l.audit_id DESC LIMIT 8`
+      )
+    ]);
     const value = result => Number(result[0][0].total);
     res.json({
       success: true,
@@ -52,7 +106,13 @@ router.get("/overview", async (req, res) => {
         assessments: value(assessments),
         assessmentQuestions: value(questions),
         assessmentAttempts: value(attempts)
-      }
+      },
+      analytics: {
+        newUsersByDay: newUsersByDay.map(row => ({ day: row.day, total: Number(row.total) })),
+        readinessBands: readinessBands.map(row => ({ band: row.band, total: Number(row.total) })),
+        topRoles: topRoles.map(row => ({ roleName: row.roleName, total: Number(row.total) }))
+      },
+      recentActivity: recentActivity.map(row => ({ ...row, details: parseAuditDetails(row.details) }))
     });
   } catch (error) {
     console.error("Admin overview error:", error.code || error.name || "Error");
@@ -60,24 +120,30 @@ router.get("/overview", async (req, res) => {
   }
 });
 
+router.get("/activity", async (req, res) => {
+  const limit = parsePositiveInt(req.query.limit, 50, 100);
+  try {
+    const [rows] = await db.query(
+      `SELECT l.audit_id AS id, l.action, l.details, l.created_at AS createdAt,
+              actor.full_name AS actorName, target.full_name AS targetName,
+              target.email AS targetEmail
+       FROM admin_audit_log l
+       LEFT JOIN users actor ON actor.user_id = l.actor_user_id
+       LEFT JOIN users target ON target.user_id = l.target_user_id
+       ORDER BY l.created_at DESC, l.audit_id DESC LIMIT ?`, [limit]
+    );
+    res.json({ success: true, activity: rows.map(row => ({ ...row, details: parseAuditDetails(row.details) })) });
+  } catch (error) {
+    console.error("Admin activity error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to load administrator activity." });
+  }
+});
+
 router.get("/users", async (req, res) => {
   try {
     const page = parsePositiveInt(req.query.page, 1, 100000);
     const limit = parsePositiveInt(req.query.limit, 25, 100);
-    const search = typeof req.query.search === "string" ? req.query.search.trim().slice(0, 120) : "";
-    const role = ["student", "admin"].includes(req.query.role) ? req.query.role : null;
-    const conditions = [];
-    const values = [];
-    if (search) {
-      const term = `%${search}%`;
-      conditions.push("(full_name LIKE ? OR email LIKE ? OR college LIKE ? OR target_role LIKE ?)");
-      values.push(term, term, term, term);
-    }
-    if (role) {
-      conditions.push("account_role = ?");
-      values.push(role);
-    }
-    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const { where, values } = getUserFilters(req.query.search, req.query.role);
     const [[countRows], [users]] = await Promise.all([
       db.query(`SELECT COUNT(*) AS total FROM users ${where}`, values),
       db.query(
@@ -92,6 +158,27 @@ router.get("/users", async (req, res) => {
   } catch (error) {
     console.error("Admin user list error:", error.code || error.name || "Error");
     res.status(500).json({ success: false, message: "Unable to load users." });
+  }
+});
+
+router.get("/users/export", async (req, res) => {
+  try {
+    const { where, values } = getUserFilters(req.query.search, req.query.role);
+    const [users] = await db.query(
+      `SELECT full_name AS name, email, college, branch, semester,
+              target_role AS targetRole, readiness_score AS readinessScore,
+              account_role AS accountRole, created_at AS createdAt
+       FROM users ${where} ORDER BY created_at DESC, user_id DESC LIMIT 10000`, values
+    );
+    const columns = ["name", "email", "college", "branch", "semester", "targetRole", "readinessScore", "accountRole", "createdAt"];
+    const csv = [columns.join(","), ...users.map(user => columns.map(column => csvCell(user[column])).join(","))].join("\r\n");
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="skilltwin-users-${stamp}.csv"`);
+    res.send(`\uFEFF${csv}`);
+  } catch (error) {
+    console.error("Admin user export error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to export user accounts." });
   }
 });
 
@@ -165,6 +252,11 @@ router.patch("/users/:userId/role", async (req, res) => {
       }
     }
     await connection.query("UPDATE users SET account_role = ? WHERE user_id = ?", [accountRole, userId]);
+    await connection.query(
+      `INSERT INTO admin_audit_log (actor_user_id, target_user_id, action, details)
+       VALUES (?, ?, 'user.role.changed', JSON_OBJECT('fromRole', ?, 'toRole', ?))`,
+      [req.user.user_id, userId, targetRows[0].account_role, accountRole]
+    );
     await connection.commit();
     res.json({ success: true, userId, accountRole });
   } catch (error) {
