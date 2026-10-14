@@ -68,7 +68,7 @@ router.get("/overview", async (req, res) => {
       db.query(
         `SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS day, COUNT(*) AS total
          FROM users WHERE account_role = 'student' AND created_at >= CURRENT_DATE - INTERVAL 29 DAY
-         GROUP BY DATE(created_at) ORDER BY day`
+         GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d') ORDER BY day`
       ),
       db.query(
         `SELECT CASE WHEN readiness_score < 40 THEN '0–39'
