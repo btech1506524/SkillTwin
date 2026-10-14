@@ -71,10 +71,10 @@ export const apiService = {
 
   getProfile: async () => {
     try {
-      const response = await apiClient.get('/student/profile');
+      const response = await apiClient.get('/auth/profile');
       return response.data;
     } catch (err) {
-      return null;
+      return err.response ? { success: false, status: err.response.status } : null;
     }
   },
 

@@ -62,6 +62,8 @@ Vercel hosts the Vite student frontend. Render hosts the Express API and its bac
 
 ## Project progress
 
+The current implementation and local verification status for Phases 1–12 is tracked in [`docs/phases-1-12-status.md`](docs/phases-1-12-status.md). The database relationships are documented in [`docs/database-erd.md`](docs/database-erd.md). The status tracker distinguishes implementation evidence from production deployment, which remains a later phase.
+
 ### Phase 10 — Assessments (implemented)
 
 - The dashboard includes an assessment catalogue, multiple-choice assessment flow, immediate answer review, and saved attempt history.

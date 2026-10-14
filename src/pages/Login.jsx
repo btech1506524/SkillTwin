@@ -68,12 +68,12 @@ export default function Login() {
           <div className="auth-left-content">
             <div className="auth-tagline-badge"><Sparkles size={14} /> Welcome back</div>
             <h1>Sign in to your<br /><span>Career Twin</span></h1>
-            <p>Access your personalized Sem 5 skill roadmap, placement readiness score, and AI recommendations.</p>
+            <p>Access your personalized learning roadmap, career-readiness score, and rule-based career projections.</p>
             
             <div className="auth-features">
-              <div className="auth-feature"><div className="auth-feature-dot"></div>Placement readiness tracker & skill radar</div>
-              <div className="auth-feature"><div className="auth-feature-dot"></div>Sem 5 Core CS curriculum benchmarks</div>
-              <div className="auth-feature"><div className="auth-feature-dot"></div>Interactive growth simulator & AI career coach</div>
+              <div className="auth-feature"><div className="auth-feature-dot"></div>Career-readiness estimate and role skill gaps</div>
+              <div className="auth-feature"><div className="auth-feature-dot"></div>Configured skill requirements for each career role</div>
+              <div className="auth-feature"><div className="auth-feature-dot"></div>Interactive career scenarios and skill-gap guidance</div>
             </div>
 
             {/* Quick Demo Login Highlight */}

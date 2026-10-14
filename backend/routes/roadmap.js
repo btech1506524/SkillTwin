@@ -55,7 +55,7 @@ async function getRoleGaps(connection, userId) {
     .sort((a, b) => b.priorityScore - a.priorityScore || b.gap - a.gap || a.skillName.localeCompare(b.skillName));
 }
 
-async function generateRoadmap(userId) {
+async function generateRoadmap(userId, { regenerate = false } = {}) {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
@@ -66,6 +66,19 @@ async function generateRoadmap(userId) {
     if (!users.length) {
       await connection.rollback();
       return null;
+    }
+    if (!regenerate) {
+      const [existing] = await connection.query(
+        `SELECT roadmap_id AS id FROM roadmaps
+         WHERE user_id = ? AND is_current = TRUE
+           AND role_id = (SELECT role_id FROM career_roles WHERE role_name = ?)
+         ORDER BY roadmap_id DESC LIMIT 1`,
+        [userId, users[0].targetRole]
+      );
+      if (existing.length) {
+        await connection.commit();
+        return Number(existing[0].id);
+      }
     }
     const [roles] = await connection.query(
       "SELECT role_id AS roleId, role_name AS roleName FROM career_roles WHERE role_name = ?",
@@ -185,7 +198,7 @@ router.get("/", async (req, res) => {
 
 router.post("/generate", async (req, res) => {
   try {
-    const roadmapId = await generateRoadmap(req.user.user_id);
+    const roadmapId = await generateRoadmap(req.user.user_id, { regenerate: true });
     if (!roadmapId) return res.status(404).json({ success: false, message: "Choose a supported target role before generating a roadmap." });
     const roadmap = await loadCurrentRoadmap(req.user.user_id);
     res.status(201).json({ success: true, roadmap });

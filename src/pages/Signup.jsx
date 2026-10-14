@@ -87,13 +87,13 @@ export default function Signup() {
             
             <div className="auth-features">
               <div className="auth-feature"><div className="auth-feature-dot"></div>Tailored for college placement & internship cycles</div>
-              <div className="auth-feature"><div className="auth-feature-dot"></div>Instant skill gap breakdown across 9 core subjects</div>
+              <div className="auth-feature"><div className="auth-feature-dot"></div>Skill-gap analysis for your selected career role</div>
               <div className="auth-feature"><div className="auth-feature-dot"></div>Interactive growth simulations with real-time score updates</div>
             </div>
 
             <div className="demo-highlight-box">
               <div className="demo-badge"><Zap size={14} /> Quick Evaluation Mode</div>
-              <p>Want to see the finished dashboard right away? Skip registration with one click.</p>
+              <p>Explore a sample dashboard without creating an account. Demo changes stay in this browser.</p>
               <button 
                 type="button" 
                 className="demo-action-btn"
@@ -222,7 +222,7 @@ export default function Signup() {
             <div className="auth-divider"><span>or test directly</span></div>
 
             <button type="button" className="demo-quick-btn" onClick={handleDemoLogin} disabled={loading}>
-              <Zap size={16} /> Instant Demo Access (Preloaded Sem 5 Data)
+              <Zap size={16} /> Instant Demo Access (Sample Data)
             </button>
 
             <p className="auth-switch">

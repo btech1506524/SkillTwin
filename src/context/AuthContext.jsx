@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { apiService } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -31,11 +31,13 @@ const normalizeUser = (user) => ({
   ...DEFAULT_DEMO_STUDENT,
   ...user,
   accountRole: user?.accountRole === 'admin' ? 'admin' : 'student',
-  skills: { ...DEFAULT_DEMO_STUDENT.skills, ...(user?.skills || {}) },
-  completedMilestones: user?.completedMilestones || []
+  skills: user?.skills && typeof user.skills === 'object' ? { ...user.skills } : {},
+  completedMilestones: Array.isArray(user?.completedMilestones) ? user.completedMilestones : []
 });
 
 export function AuthProvider({ children }) {
+  const skillUpdateTimers = useRef(new Map());
+  const skillUpdateResolvers = useRef(new Map());
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('skilltwin_user');
@@ -54,6 +56,39 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('skilltwin_token');
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!localStorage.getItem('skilltwin_token')) return undefined;
+    let active = true;
+    apiService.getProfile().then(response => {
+      if (!active || !response) return;
+      if (!response.success && [401, 404].includes(response.status)) {
+        localStorage.removeItem('skilltwin_token');
+        localStorage.removeItem('skilltwin_user');
+        setUser(null);
+        return;
+      }
+      const profile = response.user;
+      if (response.success && profile) {
+        setUser(previous => previous ? normalizeUser({
+          ...previous,
+          id: profile.user_id,
+          name: profile.full_name,
+          email: profile.email,
+          phone: profile.phone,
+          college: profile.college,
+          branch: profile.branch,
+          semester: String(profile.semester),
+          targetRole: profile.target_role,
+          cgpa: profile.cgpa,
+          readinessScore: Number(profile.readiness_score || 0),
+          accountRole: profile.account_role,
+          graduationYear: profile.graduation_year
+        }) : previous);
+      }
+    });
+    return () => { active = false; };
+  }, []);
 
   // ERR-012 FIX: Distinguish real server rejection from server-offline fallback
   const login = async (email, password) => {
@@ -158,9 +193,24 @@ export function AuthProvider({ children }) {
     if (!user) return;
 
     if (localStorage.getItem('skilltwin_token')) {
-      const response = await apiService.updateSkillLevel(skillName, newLevel);
-      if (response?.success) await refreshCareerReadiness();
-      return response;
+      return new Promise(resolve => {
+        const resolvers = skillUpdateResolvers.current.get(skillName) || [];
+        resolvers.push(resolve);
+        skillUpdateResolvers.current.set(skillName, resolvers);
+        clearTimeout(skillUpdateTimers.current.get(skillName));
+        skillUpdateTimers.current.set(skillName, setTimeout(async () => {
+          skillUpdateTimers.current.delete(skillName);
+          skillUpdateResolvers.current.delete(skillName);
+          let response;
+          try {
+            response = await apiService.updateSkillLevel(skillName, newLevel);
+            if (response?.success) await refreshCareerReadiness();
+          } catch {
+            response = { success: false, message: 'Unable to save this skill. Please try again.' };
+          }
+          resolvers.forEach(resolveUpdate => resolveUpdate(response));
+        }, 300));
+      });
     }
 
     setUser(prev => {

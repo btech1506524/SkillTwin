@@ -6,42 +6,12 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-const defaultSkills = [
-  ["Data Structures & Algorithms", 65, 85, "Core CS"], ["Object-Oriented Programming (Java/C++)", 75, 80, "Core CS"],
-  ["DBMS & SQL Queries", 80, 75, "Database"], ["Operating Systems & Linux", 60, 70, "Core CS"], ["Computer Networks", 50, 65, "Core CS"],
-  ["React.js & Frontend", 72, 70, "Development"], ["Node.js & REST APIs", 55, 75, "Development"], ["Git, Docker & CI/CD", 35, 60, "DevOps"],
-  ["System Design Fundamentals", 30, 65, "Architecture"]
-];
-
-const toSkillMap = (rows = []) => {
-  const values = new Map(rows.map(row => [row.skill_name, Number(row.proficiency_score)]));
-  return Object.fromEntries(defaultSkills.map(([name, initial, required, category]) => [
-    name, { current: values.has(name) ? values.get(name) : initial, required, category }
-  ]));
-};
-const scoreSkills = skills => {
-  const entries = Object.values(skills);
-  const target = entries.reduce((sum, skill) => sum + skill.required, 0);
-  return target ? Math.round(entries.reduce((sum, skill) => sum + Math.min(skill.current, skill.required), 0) / target * 100) : 0;
-};
-
-async function initializeStudent(connection, userId, targetRole) {
-  for (const [skillName, score] of defaultSkills) {
-    await connection.query(
-      `INSERT INTO user_skills (user_id, skill_id, proficiency_level, proficiency_score)
-       SELECT ?, skill_id, ?, ? FROM skills WHERE skill_name = ?
-       ON DUPLICATE KEY UPDATE proficiency_score = VALUES(proficiency_score)`,
-      [userId, score >= 75 ? "Advanced" : score >= 50 ? "Intermediate" : "Beginner", score, skillName]
-    );
-  }
-  const [roles] = await connection.query("SELECT role_id FROM career_roles WHERE role_name = ?", [targetRole]);
-  if (roles.length) {
-    await connection.query(
-      "INSERT INTO roadmaps (user_id, role_id, roadmap_title, description) VALUES (?, ?, ?, ?)",
-      [userId, roles[0].role_id, `${targetRole} Career Roadmap`, `Personalized roadmap for ${targetRole}`]
-    );
-  }
-}
+const toSkillMap = (rows = []) => Object.fromEntries(rows.map(row => [row.skill_name, {
+  current: Number(row.proficiency_score),
+  required: 0,
+  category: row.category,
+  missing: false
+}]));
 
 // ===============================
 // REGISTER
@@ -127,7 +97,6 @@ router.post("/register", async (req, res) => {
       ]
     );
 
-    await initializeStudent(connection, result.insertId, selectedRole);
     await connection.commit();
 
     // ERR-025 FIX: Generate and return a JWT token (previously missing)
@@ -151,9 +120,9 @@ router.post("/register", async (req, res) => {
         targetRole: selectedRole,
         accountRole: "student",
         college: college || "",
-        cgpa: "0.0",
-        readinessScore: scoreSkills(toSkillMap()),
-        skills: toSkillMap(),
+        cgpa: "",
+        readinessScore: 0,
+        skills: {},
         completedMilestones: []
       }
     });
@@ -255,8 +224,8 @@ router.post("/login", async (req, res) => {
         targetRole: user.target_role || "Software Developer",
         accountRole: user.account_role || "student",
         college: user.college || "",
-        cgpa: user.cgpa || "0.0",
-        readinessScore: scoreSkills(toSkillMap(skillRows)),
+        cgpa: user.cgpa == null ? "" : String(user.cgpa),
+        readinessScore: Number(user.readiness_score || 0),
         skills: toSkillMap(skillRows),
         completedMilestones: milestoneRows.map(row => row.milestone_key)
       }
@@ -278,7 +247,8 @@ router.post("/login", async (req, res) => {
 router.get("/profile", authMiddleware, async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT user_id, full_name, email, phone, college, branch, graduation_year
+      `SELECT user_id, full_name, email, phone, college, branch, semester,
+              target_role, cgpa, readiness_score, account_role, graduation_year
        FROM users
        WHERE user_id = ?`,
       [req.user.user_id]

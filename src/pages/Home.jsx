@@ -67,7 +67,7 @@ export default function Home() {
             <h1>Build the career<span> you actually want.</span></h1>
           </AnimatedSection>
           <AnimatedSection delay={200}>
-            <p className="hero-desc">SkillTwin AI analyzes your skills, projects and academic profile to identify your skill gaps, build a personalized roadmap and simulate your career growth for campus placements.</p>
+            <p className="hero-desc">SkillTwin compares your self-rated skills with role requirements, highlights gaps, builds a personalized roadmap and simulates readiness changes using deterministic rules.</p>
           </AnimatedSection>
           <AnimatedSection delay={300}>
             <div className="hero-buttons">
@@ -153,7 +153,7 @@ export default function Home() {
             <div className="workflow-step">
               <div className="step-number">01</div>
               <h3>Build Your Profile</h3>
-              <p>Add your academic information, skills, projects and career goal.</p>
+              <p>Add your profile details, self-rated skills and career goal.</p>
             </div>
           </AnimatedSection>
           <AnimatedSection delay={120}>
@@ -174,7 +174,7 @@ export default function Home() {
             <div className="workflow-step">
               <div className="step-number">04</div>
               <h3>Simulate Your Growth</h3>
-              <p>Test what happens when you add skills, projects or assessments.</p>
+              <p>Explore how improving your skills could change your readiness profile.</p>
             </div>
           </AnimatedSection>
         </div>
@@ -191,10 +191,10 @@ export default function Home() {
         <div className="career-grid">
           <AnimatedSection delay={0}><div className="career-card" {...careerSelectProps('Software Developer')}><div className="career-card-icon"><Code size={24} /></div><span>01</span><h3>Software Developer</h3><p>DSA · OOP · DBMS · Development</p></div></AnimatedSection>
           <AnimatedSection delay={80}><div className="career-card" {...careerSelectProps('Frontend Developer')}><div className="career-card-icon"><Zap size={24} /></div><span>02</span><h3>Frontend Developer</h3><p>React · JavaScript · UI · Web</p></div></AnimatedSection>
-          <AnimatedSection delay={160}><div className="career-card" {...careerSelectProps('Backend Developer')}><div className="career-card-icon"><Database size={24} /></div><span>03</span><h3>Backend Developer</h3><p>Node.js · APIs · Databases · Security</p></div></AnimatedSection>
+          <AnimatedSection delay={160}><div className="career-card" {...careerSelectProps('Backend Developer')}><div className="career-card-icon"><Database size={24} /></div><span>03</span><h3>Backend Developer</h3><p>Node.js · APIs · Databases · System design</p></div></AnimatedSection>
           <AnimatedSection delay={240}><div className="career-card" {...careerSelectProps('Full Stack Developer')}><div className="career-card-icon"><Shield size={24} /></div><span>04</span><h3>Full Stack Developer</h3><p>Frontend · Backend · Database · DevOps</p></div></AnimatedSection>
-          <AnimatedSection delay={320}><div className="career-card" {...careerSelectProps('Data Analyst')}><div className="career-card-icon"><BarChart3 size={24} /></div><span>05</span><h3>Data Analyst</h3><p>SQL · Python · Statistics · Visualization</p></div></AnimatedSection>
-          <AnimatedSection delay={400}><div className="career-card" {...careerSelectProps('AI / ML Engineer')}><div className="career-card-icon"><Cpu size={24} /></div><span>06</span><h3>AI / ML Engineer</h3><p>Python · ML · Mathematics · AI</p></div></AnimatedSection>
+          <AnimatedSection delay={320}><div className="career-card" {...careerSelectProps('Data Analyst')}><div className="career-card-icon"><BarChart3 size={24} /></div><span>05</span><h3>Data Analyst</h3><p>SQL · Python · Statistics · Analytics</p></div></AnimatedSection>
+          <AnimatedSection delay={400}><div className="career-card" {...careerSelectProps('AI / ML Engineer')}><div className="career-card-icon"><Cpu size={24} /></div><span>06</span><h3>AI / ML Engineer</h3><p>Python · Machine learning · Statistics</p></div></AnimatedSection>
         </div>
       </section>
 

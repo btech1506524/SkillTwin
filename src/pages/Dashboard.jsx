@@ -42,6 +42,8 @@ export default function Dashboard() {
   const [roadmapProgress, setRoadmapProgress] = useState({ total: 0, completed: 0, inProgress: 0, planned: 0, percentage: 0 });
   const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [roadmapError, setRoadmapError] = useState('');
+  const [skillUpdateError, setSkillUpdateError] = useState('');
+  const [targetRoleError, setTargetRoleError] = useState('');
   const simulationRequest = useRef(0);
 
   useEffect(() => {
@@ -167,8 +169,9 @@ export default function Dashboard() {
 
   const handleTargetRoleChange = async (event) => {
     const nextRole = event.target.value;
-    await updateTargetRole?.(nextRole);
-    await syncRoadmap();
+    setTargetRoleError('');
+    const response = await updateTargetRole?.(nextRole);
+    if (!response?.success) setTargetRoleError(response?.message || 'Unable to update your target role.');
   };
 
   // ERR-022 FIX: Deterministic boost calculation based on scenario definitions
@@ -276,15 +279,15 @@ export default function Dashboard() {
               <div className="profile-details">
                 <div className="profile-name-row">
                   <h1>{student.name || 'Student Profile'}</h1>
-                  <span className="badge-sem">Semester {student.semester || '5'} CSE</span>
+                  <span className="badge-sem">{student.semester ? `Semester ${student.semester}` : 'Semester not set'}</span>
                   <span className="badge-status">
                     <Sparkles size={12} /> Twin Active
                   </span>
                 </div>
                 <div className="profile-meta-row">
-                  <span><GraduationCap size={14} /> {student.branch || 'Computer Science & Engineering'}</span>
-                  <span><Building2 size={14} /> {student.college || 'Engineering College'}</span>
-                  <span><Award size={14} /> CGPA: <strong>{student.cgpa || '8.5'}</strong></span>
+                  <span><GraduationCap size={14} /> {student.branch || 'Branch not added'}</span>
+                  <span><Building2 size={14} /> {student.college || 'College not added'}</span>
+                  <span><Award size={14} /> CGPA: <strong>{student.cgpa || 'Not added'}</strong></span>
                 </div>
               </div>
             </div>
@@ -305,6 +308,7 @@ export default function Dashboard() {
                   <option value="Data Analyst">Data Analyst</option>
                 </select>
               </div>
+              {targetRoleError && <p className="assessment-error" role="alert">{targetRoleError}</p>}
             </div>
           </div>
         </section>
@@ -426,7 +430,7 @@ export default function Dashboard() {
               onClick={() => setActiveTab('roadmap')}
             >
               <BookOpen size={17} />
-              <span>8-Week Semester Roadmap</span>
+              <span>Learning Roadmap</span>
             </button>
 
             <button
@@ -442,7 +446,7 @@ export default function Dashboard() {
               onClick={() => setActiveTab('simulator')}
             >
               <TrendingUp size={17} />
-              <span>AI Career Simulator</span>
+              <span>Career Simulator</span>
             </button>
 
             <button 
@@ -460,8 +464,9 @@ export default function Dashboard() {
               <div className="tab-pane skills-pane">
                 <div className="pane-header">
                   <div>
-                    <h2>Sem 5 CSE Competency Matrix</h2>
+                    <h2>Role Skill Matrix</h2>
                     <p>Skill targets are based on your selected {student.targetRole || 'career'} role. Adjust your proficiency to update readiness.</p>
+                    {skillUpdateError && <p className="assessment-error" role="alert">{skillUpdateError}</p>}
                     {student.readinessSummary && (
                       <p className="readiness-gap-summary" role="status">
                         {student.readinessSummary.missingCount} missing skills · {student.readinessSummary.belowTargetCount} below target · {student.readinessSummary.metCount} meeting target
@@ -506,7 +511,10 @@ export default function Dashboard() {
                             min="0"
                             max="100" 
                             value={data.current} 
-                            onChange={(e) => updateSkill && updateSkill(name, parseInt(e.target.value))}
+                            onChange={async (e) => {
+                              const response = await updateSkill?.(name, Number(e.target.value));
+                              setSkillUpdateError(response?.success ? '' : response?.message || 'Unable to save this skill.');
+                            }}
                             className="skill-range-slider"
                           />
                         </div>

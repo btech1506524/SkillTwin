@@ -106,6 +106,10 @@ router.get("/profile", authMiddleware, async (req, res) => {
         phone,
         college,
         branch,
+        semester,
+        target_role,
+        cgpa,
+        readiness_score,
         graduation_year,
         created_at
        FROM users
@@ -293,18 +297,10 @@ router.get("/target-role", authMiddleware, async (req, res) => {
   try {
 
     const [rows] = await db.query(
-      `SELECT
-        r.role_id,
-        r.role_name,
-        r.description,
-        r.average_salary,
-        r.demand_level
-       FROM roadmaps rm
-       JOIN career_roles r
-         ON rm.role_id = r.role_id
-       WHERE rm.user_id = ?
-       ORDER BY rm.created_at DESC
-       LIMIT 1`,
+      `SELECT r.role_id, r.role_name, r.description, r.average_salary, r.demand_level
+       FROM users u
+       JOIN career_roles r ON r.role_name = u.target_role
+       WHERE u.user_id = ?`,
       [req.user.user_id]
     );
 
@@ -344,12 +340,12 @@ router.put("/target-role", authMiddleware, async (req, res) => {
   let connection;
   try {
     let { role_id } = req.body || {};
-    const { targetRole } = req.body || {};
-    if (targetRole !== undefined && (typeof targetRole !== "string" || targetRole.length > 120)) {
+    const requestedRole = req.body?.targetRole;
+    if (requestedRole !== undefined && (typeof requestedRole !== "string" || !requestedRole.trim() || requestedRole.trim().length > 120)) {
       return res.status(400).json({ success: false, message: "targetRole must be a valid role name." });
     }
-    if (!role_id && targetRole) {
-      const [matches] = await db.query("SELECT role_id FROM career_roles WHERE role_name = ?", [targetRole]);
+    if (!role_id && requestedRole) {
+      const [matches] = await db.query("SELECT role_id FROM career_roles WHERE role_name = ?", [requestedRole.trim()]);
       if (matches.length) role_id = matches[0].role_id;
     }
 
@@ -381,6 +377,11 @@ router.put("/target-role", authMiddleware, async (req, res) => {
 
     connection = await db.getConnection();
     await connection.beginTransaction();
+    const [users] = await connection.query("SELECT user_id FROM users WHERE user_id = ? FOR UPDATE", [req.user.user_id]);
+    if (!users.length) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: "Student not found." });
+    }
     await connection.query("UPDATE users SET target_role = ? WHERE user_id = ?", [role.role_name, req.user.user_id]);
     await connection.commit();
 
