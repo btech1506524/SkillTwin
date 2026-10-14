@@ -21,9 +21,12 @@ function ProtectedRoute({ children }) {
 function BackendAdminRedirect() {
   const configuredAdminUrl = import.meta.env.VITE_ADMIN_URL;
   const configuredApiUrl = import.meta.env.VITE_API_BASE_URL;
+  const defaultAdminUrl = import.meta.env.PROD
+    ? "https://skilltwin-l25l.onrender.com/admin"
+    : "http://localhost:5001/admin";
   const adminUrl = configuredAdminUrl || (configuredApiUrl?.startsWith("http")
     ? new URL("/admin", configuredApiUrl).toString()
-    : "http://localhost:5001/admin");
+    : defaultAdminUrl);
 
   useEffect(() => { window.location.replace(adminUrl); }, [adminUrl]);
   return <main className="loading-screen">Opening the SkillTwin admin dashboard…</main>;

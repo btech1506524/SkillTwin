@@ -1,5 +1,3 @@
-USE skilltwin;
-
 -- Add server-controlled account roles. Existing accounts stay students by default.
 SET @account_role_column = (
   SELECT COUNT(*) FROM information_schema.COLUMNS

@@ -1,5 +1,3 @@
-USE skilltwin;
-
 -- Keep existing roadmap snapshots; mark newly generated snapshots as current.
 SET @roadmap_current_column = (
   SELECT COUNT(*) FROM information_schema.COLUMNS

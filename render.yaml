@@ -14,14 +14,16 @@ services:
       - key: CLIENT_ORIGIN
         sync: false
       - key: DB_HOST
-        sync: false
+        value: iriguchi.proxy.rlwy.net
       - key: DB_USER
         sync: false
       - key: DB_PASS
         sync: false
       - key: DB_NAME
-        sync: false
+        value: railway
       - key: DB_PORT
-        value: 3306
+        value: 38169
       - key: DB_SSL
         value: "true"
+      - key: DB_SSL_CA
+        value: certs/railway-mysql-ca.pem

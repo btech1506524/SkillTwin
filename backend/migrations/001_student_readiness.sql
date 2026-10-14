@@ -1,5 +1,3 @@
-USE skilltwin;
-
 DELIMITER //
 CREATE PROCEDURE migrate_student_readiness_columns()
 BEGIN

@@ -1,5 +1,3 @@
-USE skilltwin;
-
 CREATE TABLE IF NOT EXISTS admin_audit_log (
   audit_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   actor_user_id INT NULL,

@@ -1,5 +1,3 @@
-USE skilltwin;
-
 -- Ensure AI / ML resume analysis includes the Python requirement on upgraded databases.
 INSERT IGNORE INTO skills (skill_name, category)
 VALUES ('Python', 'AI / ML');
