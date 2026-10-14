@@ -16,7 +16,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm --prefix backend install
    ```
 
-2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). It creates the `skilltwin` database, seeds skills and roles, and installs the assessment, roadmap, admin, audit, and OAuth tables. For an existing database, select the target schema and apply migrations `001_student_readiness.sql` through `007_oauth_login.sql` in order (for example, `mysql -u root -p skilltwin < backend/migrations/001_student_readiness.sql`). Migration files do not select a schema for you. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
+2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`), then select `skilltwin` and apply `backend/migrations/009_role_based_skill_catalog.sql`. For an existing database, select the target schema and apply unapplied migrations in order through `008_student_onboarding.sql`, then apply `009_role_based_skill_catalog.sql` (for example, `mysql -u root -p skilltwin < backend/migrations/009_role_based_skill_catalog.sql`). Migration files do not select a schema for you. Migration 009 adds required/optional role mapping and seeds the categorized role skill catalog without dropping student data. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
 
 3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET` (at least 32 characters for production).
 
@@ -38,6 +38,7 @@ Choose **Instant Demo Access** on Login or Signup, or use the home page demo act
 - `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/profile`
 - `POST /api/auth/oauth/:provider/start`, `POST /api/auth/oauth/:provider/link`, `GET /api/auth/oauth/:provider/callback`, `POST /api/auth/oauth/exchange`
 - `GET /api/student/profile`, `GET|PUT /api/student/skills`
+- `GET /api/student/onboarding` returns the authenticated profile, saved skills, and role list; `GET /api/student/onboarding/skills?roleId=...` returns that role's categorized required and optional skills; `PUT /api/student/onboarding` saves the role, profile, and selected proficiency levels.
 - `GET|PUT /api/student/target-role`, `GET /api/student/gaps`, `GET /api/student/readiness`
 - `GET|PUT /api/student/milestones`
 - `POST /api/ai/simulate`, `POST /api/ai/analyze-resume`

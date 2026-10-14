@@ -1,6 +1,6 @@
 # SkillTwin database ER diagram
 
-This diagram reflects the current tables in `backend/schema.sql` and migrations `001_student_readiness.sql` through `006_admin_audit_log.sql`. It shows the live schema, not planned resume storage, chatbot history, or a separate progress-snapshot model.
+This diagram reflects `backend/schema.sql` and migrations through `009_role_based_skill_catalog.sql`. It shows the live schema, not planned resume storage, chatbot history, or a separate progress-snapshot model.
 
 ```mermaid
 erDiagram
@@ -39,6 +39,7 @@ erDiagram
     int role_id PK, FK
     int skill_id PK, FK
     string required_level
+    boolean is_required
     string importance
   }
 
@@ -131,7 +132,8 @@ erDiagram
 ## Relationship notes
 
 - `users.target_role` stores the selected role name. It is intentionally not a foreign key; the API validates the name against `career_roles` when it is changed.
-- `career_role_skills` is the many-to-many join between roles and required skills.
+- `career_role_skills` is the many-to-many join between roles and skills. `is_required` controls whether a mapped skill contributes to readiness and gap roadmaps; optional role skills remain available in the categorized picker.
+- `skills.category` uses `common`, `core`, `soft`, or `specialized`. A skill is stored once and shared across relevant roles through `career_role_skills`.
 - `roadmap_milestones` are the persisted progress items. `user_milestones` remains a separate legacy checklist table used by older client flows.
 - Assessment answer keys are stored in the database and excluded from the question-fetch response. Submitted answer records reference both the saved attempt and the source question.
 - Admin actor and target references become `NULL` if the related user is deleted, so the audit event itself can remain.

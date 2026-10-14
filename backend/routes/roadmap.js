@@ -37,7 +37,7 @@ async function getRoleGaps(connection, userId) {
        JOIN skills source_skill ON source_skill.skill_id = us.skill_id
        GROUP BY us.user_id, canonical_skill_name
      ) profile ON profile.user_id = u.user_id AND profile.canonical_skill_name = s.skill_name
-     WHERE u.user_id = ?
+     WHERE u.user_id = ? AND crs.is_required = TRUE
      ORDER BY crs.importance DESC, s.skill_name`,
     [userId]
   );

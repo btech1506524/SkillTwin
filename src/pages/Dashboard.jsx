@@ -28,7 +28,7 @@ const summarizeRoadmapItems = (items) => {
 };
 
 export default function Dashboard() {
-  const { user, updateSkill, toggleMilestone, updateTargetRole, refreshCareerReadiness } = useAuth();
+  const { user, updateSkill, toggleMilestone, refreshCareerReadiness } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('skills'); // 'skills', 'roadmap', 'simulator', 'resume'
@@ -44,7 +44,6 @@ export default function Dashboard() {
   const [roadmapLoading, setRoadmapLoading] = useState(false);
   const [roadmapError, setRoadmapError] = useState('');
   const [skillUpdateError, setSkillUpdateError] = useState('');
-  const [targetRoleError, setTargetRoleError] = useState('');
   const simulationRequest = useRef(0);
 
   useEffect(() => {
@@ -157,13 +156,6 @@ export default function Dashboard() {
       setRoadmapLoading(false);
       setRoadmapError(response?.message || 'Unable to update this milestone.');
     }
-  };
-
-  const handleTargetRoleChange = async (event) => {
-    const nextRole = event.target.value;
-    setTargetRoleError('');
-    const response = await updateTargetRole?.(nextRole);
-    if (!response?.success) setTargetRoleError(response?.message || 'Unable to update your target role.');
   };
 
   // ERR-022 FIX: Deterministic boost calculation based on scenario definitions
@@ -287,21 +279,8 @@ export default function Dashboard() {
 
             <div className="profile-role-switcher">
               <label>Target Career Role</label>
-              <div className="role-select-box">
-                <Target size={16} className="role-icon" />
-                <select 
-                  value={student.targetRole || 'Software Developer'} 
-                  onChange={handleTargetRoleChange}
-                >
-                  <option value="Software Developer">Software Developer (SDE)</option>
-                  <option value="Frontend Developer">Frontend Developer</option>
-                  <option value="Backend Developer">Backend Developer</option>
-                  <option value="Full Stack Developer">Full Stack Developer</option>
-                  <option value="AI / ML Engineer">AI / ML Engineer</option>
-                  <option value="Data Analyst">Data Analyst</option>
-                </select>
-              </div>
-              {targetRoleError && <p className="assessment-error" role="alert">{targetRoleError}</p>}
+              <div className="role-select-box"><Target size={16} className="role-icon" /><strong>{student.targetRole || 'Choose a career role'}</strong></div>
+              {!student.demo && <Link className="profile-edit-link" to="/onboarding?edit=1">Update role and skills</Link>}
             </div>
           </div>
         </section>

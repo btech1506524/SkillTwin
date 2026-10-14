@@ -30,7 +30,7 @@ async function getCareerReadiness(userId) {
        JOIN skills source_skill ON source_skill.skill_id = us.skill_id
        GROUP BY us.user_id, canonical_skill_name
      ) profile ON profile.user_id = u.user_id AND profile.canonical_skill_name = s.skill_name
-     WHERE u.user_id = ?
+     WHERE u.user_id = ? AND crs.is_required = TRUE
      ORDER BY crs.importance DESC, s.skill_name`,
     [userId]
   );
@@ -162,16 +162,15 @@ router.get("/onboarding", authMiddleware, async (req, res) => {
        FROM users WHERE user_id = ?`, [req.user.user_id]
     );
     if (!profile) return res.status(404).json({ success: false, message: "Student not found." });
-    const [[skills], [roles]] = await Promise.all([
+    const [[savedSkills], [roles]] = await Promise.all([
       db.query(
         `SELECT s.skill_id AS skillId, s.skill_name AS skillName, s.category,
                 s.description, us.proficiency_score AS proficiencyScore,
                 us.years_experience AS yearsExperience
-         FROM skills s LEFT JOIN user_skills us
-           ON us.skill_id = s.skill_id AND us.user_id = ?
-         ORDER BY s.category, s.skill_name`, [req.user.user_id]
+         FROM user_skills us JOIN skills s ON s.skill_id = us.skill_id
+         WHERE us.user_id = ? ORDER BY s.category, s.skill_name`, [req.user.user_id]
       ),
-      db.query("SELECT role_id AS id, role_name AS name FROM career_roles ORDER BY role_name")
+      db.query("SELECT role_id AS id, role_name AS name, description FROM career_roles ORDER BY role_name")
     ]);
     res.json({
       success: true,
@@ -183,7 +182,7 @@ router.get("/onboarding", authMiddleware, async (req, res) => {
         targetRole: profile.target_role || "", cgpa: profile.cgpa == null ? "" : String(profile.cgpa),
         graduationYear: profile.graduation_year == null ? "" : String(profile.graduation_year)
       },
-      skills: skills.map(skill => ({
+      savedSkills: savedSkills.map(skill => ({
         ...skill,
         proficiencyScore: skill.proficiencyScore == null ? null : Number(skill.proficiencyScore),
         yearsExperience: skill.yearsExperience == null ? 0 : Number(skill.yearsExperience)
@@ -193,6 +192,46 @@ router.get("/onboarding", authMiddleware, async (req, res) => {
   } catch (error) {
     console.error("Onboarding fetch error:", error.code || error.name || "Error");
     res.status(500).json({ success: false, message: "Unable to load your profile setup." });
+  }
+});
+
+// Role-driven catalogue: required and optional skills are configured in the
+// database, while saved proficiency is always scoped to the JWT user.
+router.get("/onboarding/skills", authMiddleware, async (req, res) => {
+  const roleId = Number(req.query.roleId);
+  if (!Number.isSafeInteger(roleId) || roleId < 1) {
+    return res.status(400).json({ success: false, message: "Choose a supported career role." });
+  }
+  try {
+    const [rows] = await db.query(
+      `SELECT s.skill_id AS skillId, s.skill_name AS skillName, s.category,
+              s.description, crs.is_required AS isRequired,
+              crs.required_level AS requiredLevel, crs.importance,
+              us.proficiency_score AS proficiencyScore,
+              us.years_experience AS yearsExperience
+       FROM career_roles r
+       JOIN career_role_skills crs ON crs.role_id = r.role_id
+       JOIN skills s ON s.skill_id = crs.skill_id
+       LEFT JOIN user_skills us ON us.skill_id = s.skill_id AND us.user_id = ?
+       WHERE r.role_id = ?
+       ORDER BY FIELD(s.category, 'common', 'core', 'soft', 'specialized'),
+                crs.is_required DESC, s.skill_name`,
+      [req.user.user_id, roleId]
+    );
+    const [roles] = await db.query("SELECT role_id AS id FROM career_roles WHERE role_id = ?", [roleId]);
+    if (!roles.length) return res.status(404).json({ success: false, message: "Career role not found." });
+    res.json({
+      success: true,
+      skills: rows.map(skill => ({
+        ...skill,
+        isRequired: Boolean(skill.isRequired),
+        proficiencyScore: skill.proficiencyScore == null ? null : Number(skill.proficiencyScore),
+        yearsExperience: skill.yearsExperience == null ? 0 : Number(skill.yearsExperience)
+      }))
+    });
+  } catch (error) {
+    console.error("Role skill catalogue error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to load skills for this career role." });
   }
 });
 
@@ -232,9 +271,15 @@ router.put("/onboarding", authMiddleware, async (req, res) => {
       await connection.rollback();
       return res.status(400).json({ success: false, message: "Choose a supported career goal." });
     }
-    const [catalog] = skillIds.length ? await connection.query(
-      `SELECT skill_id FROM skills WHERE skill_id IN (${skillIds.map(() => "?").join(",")})`, skillIds
+    const [catalog] = skillIds.length && role.length ? await connection.query(
+      `SELECT crs.skill_id FROM career_role_skills crs
+       WHERE crs.role_id = ? AND crs.skill_id IN (${skillIds.map(() => "?").join(",")})`,
+      [role[0].role_id, ...skillIds]
     ) : [[]];
+    if (skillIds.length && !role.length) {
+      await connection.rollback();
+      return res.status(400).json({ success: false, message: "Choose a supported career goal before selecting skills." });
+    }
     if (catalog.length !== skillIds.length) {
       await connection.rollback();
       return res.status(400).json({ success: false, message: "One or more selected skills are unavailable." });
@@ -258,6 +303,7 @@ router.put("/onboarding", authMiddleware, async (req, res) => {
         [req.user.user_id, Number(skill.skillId), level, score, Number(skill.yearsExperience ?? 0)]
       );
     }
+    await connection.query("UPDATE roadmaps SET is_current = FALSE WHERE user_id = ?", [req.user.user_id]);
     await connection.commit();
     const readiness = await refreshAndPersistReadiness(req.user.user_id);
     res.json({ success: true, complete, readinessScore: readiness.readinessScore });
@@ -278,8 +324,16 @@ router.put("/onboarding", authMiddleware, async (req, res) => {
 
 router.get("/skills/catalog", authMiddleware, async (req, res) => {
   try {
+    const category = typeof req.query.category === "string" ? req.query.category : "";
+    const allowedCategories = ["common", "core", "soft", "specialized"];
+    if (category && !allowedCategories.includes(category)) {
+      return res.status(400).json({ success: false, message: "Choose a supported skill category." });
+    }
     const [rows] = await db.query(
-      "SELECT skill_id AS skillId, skill_name AS skillName, category, description FROM skills ORDER BY category, skill_name"
+      `SELECT skill_id AS skillId, skill_name AS skillName, category, description
+       FROM skills ${category ? "WHERE category = ?" : ""}
+       ORDER BY FIELD(category, 'common', 'core', 'soft', 'specialized'), skill_name`,
+      category ? [category] : []
     );
     res.json({ success: true, skills: rows });
   } catch (error) {
@@ -372,8 +426,12 @@ router.put("/skills", authMiddleware, async (req, res) => {
     }
 
     const [skill] = await db.query(
-      "SELECT skill_id FROM skills WHERE skill_id = ?",
-      [resolvedSkillId]
+      `SELECT s.skill_id FROM skills s
+       JOIN career_role_skills crs ON crs.skill_id = s.skill_id
+       JOIN career_roles r ON r.role_id = crs.role_id
+       JOIN users u ON u.target_role = r.role_name
+       WHERE s.skill_id = ? AND u.user_id = ?`,
+      [resolvedSkillId, req.user.user_id]
     );
 
     if (skill.length === 0) {
@@ -405,6 +463,7 @@ router.put("/skills", authMiddleware, async (req, res) => {
         years
       ]
     );
+    await db.query("UPDATE roadmaps SET is_current = FALSE WHERE user_id = ?", [req.user.user_id]);
 
     const readiness = await refreshAndPersistReadiness(req.user.user_id);
 
@@ -435,6 +494,7 @@ router.delete("/skills/:skillId", authMiddleware, async (req, res) => {
   try {
     const [result] = await db.query("DELETE FROM user_skills WHERE user_id = ? AND skill_id = ?", [req.user.user_id, skillId]);
     if (!result.affectedRows) return res.status(404).json({ success: false, message: "This skill is not in your profile." });
+    await db.query("UPDATE roadmaps SET is_current = FALSE WHERE user_id = ?", [req.user.user_id]);
     const readiness = await refreshAndPersistReadiness(req.user.user_id);
     res.json({ success: true, readinessScore: readiness.readinessScore });
   } catch (error) {
@@ -540,12 +600,23 @@ router.put("/target-role", authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: "Student not found." });
     }
     await connection.query("UPDATE users SET target_role = ? WHERE user_id = ?", [role.role_name, req.user.user_id]);
+    await connection.query(
+      `DELETE us FROM user_skills us
+       WHERE us.user_id = ? AND NOT EXISTS (
+         SELECT 1 FROM career_role_skills crs
+         WHERE crs.role_id = ? AND crs.skill_id = us.skill_id
+       )`,
+      [req.user.user_id, normalizedRoleId]
+    );
+    await connection.query("UPDATE roadmaps SET is_current = FALSE WHERE user_id = ?", [req.user.user_id]);
     await connection.commit();
+    const readiness = await refreshAndPersistReadiness(req.user.user_id);
 
     res.json({
       success: true,
       message: "Target role updated successfully.",
-      targetRole: role
+      targetRole: role,
+      readinessScore: readiness.readinessScore
     });
 
   } catch (error) {

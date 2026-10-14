@@ -3030,4 +3030,64 @@
 .onboarding-empty-state { max-width: 700px; margin: 12px 0 18px; padding: 14px; border: 1px solid rgba(129,140,248,.25); border-radius: 10px; background: rgba(79,70,229,.08); }
 .onboarding-empty-state p { margin: 0 0 8px; color: #cbd5e1; }
 .onboarding-empty-state a { display: inline-flex; align-items: center; gap: 6px; color: #c4b5fd; font-size: 13px; }
+.onboarding-stepper { display: flex; justify-content: center; gap: 12px; margin: 0 auto 22px; }
+.onboarding-step { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid rgba(148,163,184,.17); border-radius: 999px; color: #8fa0b7; font-size: 13px; }
+.onboarding-step > span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: inherit; background: rgba(148,163,184,.12); font-size: 12px; }
+.onboarding-step.active { border-color: rgba(129,140,248,.55); color: #e0e7ff; background: rgba(79,70,229,.13); }
+.onboarding-step.active > span, .onboarding-step.complete > span { color: #fff; background: #6366f1; }
+.onboarding-step.complete { color: #cbd5e1; }
+.onboarding-role-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.onboarding-role-card { min-height: 104px; display: flex; align-items: flex-start; gap: 12px; padding: 16px; border: 1px solid rgba(148,163,184,.2); border-radius: 13px; color: #e2e8f0; text-align: left; background: rgba(8,15,30,.7); cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+.onboarding-role-card:hover { border-color: rgba(129,140,248,.55); transform: translateY(-1px); }
+.onboarding-role-card.selected { border-color: #818cf8; background: rgba(79,70,229,.16); box-shadow: 0 0 0 1px rgba(129,140,248,.18); }
+.onboarding-role-icon { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 10px; color: #c4b5fd; background: rgba(99,102,241,.18); }
+.onboarding-role-copy { display: grid; gap: 6px; flex: 1; }
+.onboarding-role-copy strong { color: #f8fafc; font-size: 14px; }
+.onboarding-role-copy > span { color: #9eacc1; font-size: 12px; line-height: 1.5; }
+.onboarding-role-radio { display: grid; place-items: center; flex: 0 0 21px; height: 21px; margin-left: auto; border: 1px solid rgba(148,163,184,.4); border-radius: 50%; color: white; }
+.selected .onboarding-role-radio { border-color: #818cf8; background: #6366f1; }
+.onboarding-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; }
+.onboarding-actions-end { justify-content: flex-end; }
+.onboarding-next, .onboarding-back { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: 9px; font-weight: 650; cursor: pointer; }
+.onboarding-next { border: 0; color: #fff; background: linear-gradient(110deg,#6d4aff,#1689c9); }
+.onboarding-next:disabled { opacity: .55; cursor: not-allowed; }
+.onboarding-back { border: 1px solid rgba(148,163,184,.24); color: #cbd5e1; background: rgba(15,23,42,.5); }
+.onboarding-notice { margin: 0 0 16px; padding: 12px 15px; border: 1px solid rgba(251,191,36,.35); border-radius: 9px; color: #fde68a; background: rgba(120,53,15,.18); font-size: 13px; }
+.onboarding-empty { padding: 14px; border: 1px solid rgba(148,163,184,.2); border-radius: 10px; color: #b6c4d8; background: rgba(8,15,30,.55); }
+.onboarding-skill-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; color: #98a8bf; font-size: 11px; }
+.required-badge, .optional-badge { display: inline-flex; align-items: center; padding: 3px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.2; }
+.required-badge { color: #ddd6fe; background: rgba(124,58,237,.22); }
+.optional-badge { color: #cbd5e1; background: rgba(100,116,139,.25); }
+.onboarding-category-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 10px; }
+.onboarding-category-heading h3 { margin: 0 0 4px; color: #e2e8f0; font-size: 15px; }
+.onboarding-category-heading p { margin: 0; color: #91a1b7; font-size: 12px; }
+.onboarding-category-heading > span { flex: 0 0 auto; color: #9eacc1; font-size: 11px; }
+.onboarding-skill-name { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 1; font-weight: 600; font-size: 13px; }
+.onboarding-skill-description { margin: 9px 0 0 30px; color: #94a3b8; font-size: 11px; line-height: 1.45; }
+.onboarding-rating { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 10px; }
+.onboarding-rating label { justify-content: flex-start; }
+.onboarding-rating select { min-width: 125px; min-height: 34px; padding: 6px 8px; border: 1px solid rgba(148,163,184,.25); border-radius: 7px; color: #e2e8f0; background: #10182a; }
+.onboarding-level-target { grid-column: 1 / -1; color: #9eacc1; font-size: 11px; }
+.onboarding-review-role { display: flex; align-items: center; gap: 12px; padding: 13px; border-radius: 9px; background: rgba(8,15,30,.55); }
+.onboarding-review-role > strong { color: #9eacc1; font-size: 12px; }
+.onboarding-review-role > span { flex: 1; color: #f8fafc; font-weight: 650; }
+.onboarding-review-role button { border: 0; color: #c4b5fd; background: transparent; cursor: pointer; }
+.onboarding-review-skills { margin-top: 16px; color: #e2e8f0; }
+.onboarding-review-skills > strong { font-size: 13px; }
+.onboarding-review-skills > p { color: #aab8cc; font-size: 13px; line-height: 1.55; }
+.onboarding-review-skills ul { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; padding: 0; margin: 10px 0 0; list-style: none; }
+.onboarding-review-skills li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px; border: 1px solid rgba(148,163,184,.15); border-radius: 8px; color: #cbd5e1; font-size: 12px; }
+.onboarding-review-skills li > span { display: grid; gap: 5px; }
+.onboarding-review-skills li small { color: #a5b4fc; font-size: 10px; }
+.onboarding-review-skills li > strong { color: #c4b5fd; }
+.onboarding-draft-status { min-height: 18px; margin: -8px 0 0; color: #93a4ba; text-align: center; font-size: 12px; }
+@media (max-width: 700px) {
+  .onboarding-stepper { justify-content: stretch; gap: 5px; }
+  .onboarding-step { flex: 1; justify-content: center; gap: 5px; padding: 7px 5px; font-size: 10px; }
+  .onboarding-step > span { flex: 0 0 20px; width: 20px; height: 20px; }
+  .onboarding-role-grid, .onboarding-review-skills ul { grid-template-columns: 1fr; }
+  .onboarding-category-heading { align-items: flex-start; flex-direction: column; }
+  .onboarding-actions { align-items: stretch; }
+  .onboarding-next, .onboarding-back { flex: 1; padding: 0 10px; font-size: 12px; }
+}
 @media (max-width: 700px) { .onboarding-main { padding-top: 28px; } .onboarding-card { padding: 19px; } .onboarding-fields, .onboarding-skill-grid { grid-template-columns: 1fr; } }

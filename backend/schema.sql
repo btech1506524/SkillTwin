@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS career_role_skills (
   role_id INT NOT NULL,
   skill_id INT NOT NULL,
   required_level VARCHAR(24) NOT NULL DEFAULT 'Intermediate',
+  is_required BOOLEAN NOT NULL DEFAULT TRUE,
   importance ENUM('Low', 'Medium', 'High', 'Critical') NOT NULL DEFAULT 'Medium',
   PRIMARY KEY (role_id, skill_id),
   FOREIGN KEY (role_id) REFERENCES career_roles(role_id) ON DELETE CASCADE,

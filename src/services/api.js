@@ -104,6 +104,15 @@ export const apiService = {
     }
   },
 
+  getRoleOnboardingSkills: async (roleId) => {
+    try {
+      const response = await apiClient.get('/student/onboarding/skills', { params: { roleId } });
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load skills for this career role.' };
+    }
+  },
+
   getStudentSkills: async () => {
     try {
       const response = await apiClient.get('/student/skills');
