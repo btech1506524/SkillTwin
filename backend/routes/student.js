@@ -263,56 +263,66 @@ router.put("/onboarding", authMiddleware, async (req, res) => {
     return res.status(400).json({ success: false, message: "Choose valid skills and proficiency ratings from 0 to 100." });
   }
 
-  const connection = await db.getConnection();
   try {
-    await connection.beginTransaction();
-    const [role] = targetRole ? await connection.query("SELECT role_id FROM career_roles WHERE role_name = ?", [targetRole]) : [[]];
-    if (targetRole && !role.length) {
-      await connection.rollback();
-      return res.status(400).json({ success: false, message: "Choose a supported career goal." });
+    let attempt = 0;
+    while (true) {
+      const connection = await db.getConnection();
+      try {
+        await connection.beginTransaction();
+        const [role] = targetRole ? await connection.query("SELECT role_id FROM career_roles WHERE role_name = ?", [targetRole]) : [[]];
+        if (targetRole && !role.length) {
+          await connection.rollback();
+          return res.status(400).json({ success: false, message: "Choose a supported career goal." });
+        }
+        const [catalog] = skillIds.length && role.length ? await connection.query(
+          `SELECT crs.skill_id FROM career_role_skills crs
+           WHERE crs.role_id = ? AND crs.skill_id IN (${skillIds.map(() => "?").join(",")})`,
+          [role[0].role_id, ...skillIds]
+        ) : [[]];
+        if (skillIds.length && !role.length) {
+          await connection.rollback();
+          return res.status(400).json({ success: false, message: "Choose a supported career goal before selecting skills." });
+        }
+        if (catalog.length !== skillIds.length) {
+          await connection.rollback();
+          return res.status(400).json({ success: false, message: "One or more selected skills are unavailable." });
+        }
+        await connection.query(
+          `UPDATE users SET full_name = IF(? = '', full_name, ?), phone = ?, college = ?, branch = ?, semester = ?,
+             target_role = ?, cgpa = ?, graduation_year = ?,
+             onboarding_completed_at = CASE WHEN ? THEN COALESCE(onboarding_completed_at, CURRENT_TIMESTAMP) ELSE onboarding_completed_at END
+           WHERE user_id = ?`,
+          [name, name, phone || null, college || null, branch || null, semester, targetRole || null, cgpa, graduationYear, complete, req.user.user_id]
+        );
+        // Replace only this student's choices; retry boundedly if concurrent
+        // account saves contend on MySQL's foreign-key/index locks.
+        await connection.query("DELETE FROM user_skills WHERE user_id = ?", [req.user.user_id]);
+        for (const skill of skills) {
+          const score = Number(skill.proficiencyScore);
+          const level = score >= 100 ? "Expert" : score >= 75 ? "Advanced" : score >= 50 ? "Intermediate" : "Beginner";
+          await connection.query(
+            `INSERT INTO user_skills (user_id, skill_id, proficiency_level, proficiency_score, years_experience)
+             VALUES (?, ?, ?, ?, ?)`,
+            [req.user.user_id, Number(skill.skillId), level, score, Number(skill.yearsExperience ?? 0)]
+          );
+        }
+        await connection.query("UPDATE roadmaps SET is_current = FALSE WHERE user_id = ?", [req.user.user_id]);
+        await connection.commit();
+        break;
+      } catch (error) {
+        await connection.rollback().catch(() => {});
+        const retryable = ["ER_LOCK_DEADLOCK", "ER_LOCK_WAIT_TIMEOUT"].includes(error.code);
+        if (!retryable || attempt >= 2) throw error;
+        attempt += 1;
+      } finally {
+        connection.release();
+      }
     }
-    const [catalog] = skillIds.length && role.length ? await connection.query(
-      `SELECT crs.skill_id FROM career_role_skills crs
-       WHERE crs.role_id = ? AND crs.skill_id IN (${skillIds.map(() => "?").join(",")})`,
-      [role[0].role_id, ...skillIds]
-    ) : [[]];
-    if (skillIds.length && !role.length) {
-      await connection.rollback();
-      return res.status(400).json({ success: false, message: "Choose a supported career goal before selecting skills." });
-    }
-    if (catalog.length !== skillIds.length) {
-      await connection.rollback();
-      return res.status(400).json({ success: false, message: "One or more selected skills are unavailable." });
-    }
-    await connection.query(
-      `UPDATE users SET full_name = IF(? = '', full_name, ?), phone = ?, college = ?, branch = ?, semester = ?,
-         target_role = ?, cgpa = ?, graduation_year = ?,
-         onboarding_completed_at = CASE WHEN ? THEN COALESCE(onboarding_completed_at, CURRENT_TIMESTAMP) ELSE onboarding_completed_at END
-       WHERE user_id = ?`,
-      [name, name, phone || null, college || null, branch || null, semester, targetRole || null, cgpa, graduationYear, complete, req.user.user_id]
-    );
-    // Onboarding is an explicit skill profile submission; replace only this
-    // student's current entries so deselected starter choices cannot linger.
-    await connection.query("DELETE FROM user_skills WHERE user_id = ?", [req.user.user_id]);
-    for (const skill of skills) {
-      const score = Number(skill.proficiencyScore);
-      const level = score >= 100 ? "Expert" : score >= 75 ? "Advanced" : score >= 50 ? "Intermediate" : "Beginner";
-      await connection.query(
-        `INSERT INTO user_skills (user_id, skill_id, proficiency_level, proficiency_score, years_experience)
-         VALUES (?, ?, ?, ?, ?)`,
-        [req.user.user_id, Number(skill.skillId), level, score, Number(skill.yearsExperience ?? 0)]
-      );
-    }
-    await connection.query("UPDATE roadmaps SET is_current = FALSE WHERE user_id = ?", [req.user.user_id]);
-    await connection.commit();
     const readiness = await refreshAndPersistReadiness(req.user.user_id);
     res.json({ success: true, complete, readinessScore: readiness.readinessScore });
   } catch (error) {
-    await connection.rollback().catch(() => {});
     console.error("Onboarding save error:", error.code || error.name || "Error");
     res.status(500).json({ success: false, message: "Unable to save your profile setup." });
-  } finally {
-    connection.release();
   }
 });
 
