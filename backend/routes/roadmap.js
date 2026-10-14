@@ -8,6 +8,11 @@ router.use(authMiddleware);
 const levelScores = { Beginner: 25, Intermediate: 50, Advanced: 75, Expert: 100 };
 const importanceScores = { Low: 1, Medium: 2, High: 3, Critical: 4 };
 
+async function hasProfiledSkills(userId) {
+  const [[row]] = await db.query("SELECT COUNT(*) AS total FROM user_skills WHERE user_id = ?", [userId]);
+  return Number(row?.total || 0) > 0;
+}
+
 async function getRoleGaps(connection, userId) {
   const [rows] = await connection.query(
     `SELECT r.role_id AS roleId, r.role_name AS roleName,
@@ -167,6 +172,9 @@ async function loadCurrentRoadmap(userId) {
 
 router.get("/progress", async (req, res) => {
   try {
+    if (!(await hasProfiledSkills(req.user.user_id))) {
+      return res.json({ success: true, roleName: null, progress: null, readinessScore: null });
+    }
     let roadmap = await loadCurrentRoadmap(req.user.user_id);
     if (!roadmap) {
       const roadmapId = await generateRoadmap(req.user.user_id);
@@ -183,6 +191,7 @@ router.get("/progress", async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
+    if (!(await hasProfiledSkills(req.user.user_id))) return res.json({ success: true, roadmap: null });
     let roadmap = await loadCurrentRoadmap(req.user.user_id);
     if (!roadmap) {
       const roadmapId = await generateRoadmap(req.user.user_id);

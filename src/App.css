@@ -2991,3 +2991,43 @@
 }
 
 
+.onboarding-page { min-height: 100vh; background: #070b18; color: #eef2ff; }
+.onboarding-main { width: min(1040px, calc(100% - 32px)); margin: 0 auto; padding: 46px 0 72px; }
+.onboarding-heading { max-width: 760px; margin: 0 auto 28px; text-align: center; }
+.onboarding-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #a5b4fc; font-size: 13px; text-transform: uppercase; letter-spacing: .1em; }
+.onboarding-heading h1 { margin: 12px 0; font-size: clamp(30px, 5vw, 46px); color: #f8fafc; }
+.onboarding-heading p, .onboarding-card-title p { color: #aab8cc; line-height: 1.65; }
+.onboarding-form { display: grid; gap: 20px; }
+.onboarding-card { padding: 26px; border: 1px solid rgba(148,163,184,.2); border-radius: 18px; background: rgba(15,23,42,.72); box-shadow: 0 16px 48px rgba(0,0,0,.18); }
+.onboarding-card-title { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 22px; }
+.onboarding-card-title > svg { flex: 0 0 auto; margin-top: 3px; color: #a78bfa; }
+.onboarding-card-title h2 { margin: 0 0 4px; font-size: 20px; color: #f8fafc; }
+.onboarding-card-title p { margin: 0; font-size: 14px; }
+.onboarding-fields { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+.onboarding-fields label { display: grid; gap: 7px; color: #dbe4f3; font-size: 13px; }
+.onboarding-fields input, .onboarding-fields select { width: 100%; min-height: 44px; padding: 10px 12px; color: #f8fafc; border: 1px solid rgba(148,163,184,.25); border-radius: 9px; background: #10182a; }
+.onboarding-fields input:disabled { color: #9aa8bd; opacity: .8; }
+.onboarding-skill-summary { margin: -8px 0 18px; color: #a5b4fc; font-size: 13px; }
+.onboarding-skill-group + .onboarding-skill-group { margin-top: 22px; }
+.onboarding-skill-group h3 { margin: 0 0 10px; color: #cbd5e1; font-size: 14px; }
+.onboarding-skill-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.onboarding-skill { min-width: 0; padding: 13px; border: 1px solid rgba(148,163,184,.18); border-radius: 11px; background: rgba(8,15,30,.72); }
+.onboarding-skill.selected { border-color: rgba(129,140,248,.6); background: rgba(79,70,229,.1); }
+.onboarding-skill-toggle { width: 100%; display: flex; align-items: center; gap: 10px; padding: 0; border: 0; color: #e2e8f0; text-align: left; background: transparent; cursor: pointer; }
+.onboarding-check { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 20px; border: 1px solid rgba(148,163,184,.45); border-radius: 6px; color: #fff; }
+.selected .onboarding-check { border-color: #818cf8; background: #6366f1; }
+.onboarding-rating { margin: 13px 0 0 30px; }
+.onboarding-rating label, .onboarding-rating > div { display: flex; justify-content: space-between; align-items: center; color: #aab8cc; font-size: 12px; }
+.onboarding-rating label strong { color: #c4b5fd; }
+.onboarding-rating input { width: 100%; margin: 9px 0 3px; accent-color: #818cf8; }
+.onboarding-submit { min-height: 52px; display: flex; justify-content: center; align-items: center; gap: 10px; border: 0; border-radius: 11px; color: #fff; font-weight: 700; background: linear-gradient(110deg,#6d4aff,#1689c9); cursor: pointer; }
+.onboarding-submit:disabled { opacity: .55; cursor: not-allowed; }
+.onboarding-error { margin: 0 0 16px; padding: 12px 15px; border: 1px solid rgba(248,113,113,.4); border-radius: 9px; color: #fecaca; background: rgba(127,29,29,.22); }
+.onboarding-loading { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 60px; color: #cbd5e1; }
+.onboarding-rating .onboarding-experience { justify-content: flex-start; margin-top: 10px; }
+.onboarding-rating input[type="number"] { width: 100%; min-height: 34px; padding: 6px 9px; color: #e2e8f0; border: 1px solid rgba(148,163,184,.25); border-radius: 7px; background: #10182a; }
+.profile-edit-link { align-self: center; margin-left: auto; color: #c4b5fd; font-size: 13px; }
+.onboarding-empty-state { max-width: 700px; margin: 12px 0 18px; padding: 14px; border: 1px solid rgba(129,140,248,.25); border-radius: 10px; background: rgba(79,70,229,.08); }
+.onboarding-empty-state p { margin: 0 0 8px; color: #cbd5e1; }
+.onboarding-empty-state a { display: inline-flex; align-items: center; gap: 6px; color: #c4b5fd; font-size: 13px; }
+@media (max-width: 700px) { .onboarding-main { padding-top: 28px; } .onboarding-card { padding: 19px; } .onboarding-fields, .onboarding-skill-grid { grid-template-columns: 1fr; } }

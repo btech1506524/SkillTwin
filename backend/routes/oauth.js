@@ -250,8 +250,8 @@ async function resolveUser(provider, identity, linkUserId) {
       const randomPassword = crypto.randomBytes(48).toString("base64url");
       const passwordHash = await bcrypt.hash(randomPassword, 10);
       const [created] = await connection.query(
-        `INSERT INTO users (full_name, email, password_hash, semester, target_role)
-         VALUES (?, ?, ?, 5, 'Software Developer')`,
+        `INSERT INTO users (full_name, email, password_hash)
+         VALUES (?, ?, ?)`,
         [identity.name, identity.email, passwordHash]
       );
       userId = Number(created.insertId);
@@ -335,15 +335,17 @@ router.post("/exchange", async (req, res) => {
   try {
     const [[user]] = await db.query(
       `SELECT user_id, full_name, email, semester, branch, target_role, account_role,
-              college, cgpa, readiness_score FROM users WHERE user_id = ?`, [userId]
+              college, cgpa, readiness_score, onboarding_completed_at
+       FROM users WHERE user_id = ?`, [userId]
     );
     if (!user) return res.status(401).json({ success: false, message: "This account is no longer available." });
-    const [[skills], [milestones]] = await Promise.all([
+    const [[skills], [milestones], [skillCount]] = await Promise.all([
       db.query(
         `SELECT s.skill_name, s.category, us.proficiency_score FROM user_skills us
          JOIN skills s ON s.skill_id = us.skill_id WHERE us.user_id = ?`, [userId]
       ),
-      db.query("SELECT milestone_key FROM user_milestones WHERE user_id = ?", [userId])
+      db.query("SELECT milestone_key FROM user_milestones WHERE user_id = ?", [userId]),
+      db.query("SELECT COUNT(*) AS total FROM user_skills WHERE user_id = ?", [userId])
     ]);
     const token = jwt.sign({ user_id: user.user_id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
     if (user.account_role === "admin") {
@@ -355,10 +357,11 @@ router.post("/exchange", async (req, res) => {
       token,
       user: {
         id: user.user_id, name: user.full_name, email: user.email,
-        semester: user.semester || "5", branch: user.branch || "",
-        targetRole: user.target_role || "Software Developer", accountRole: user.account_role || "student",
+        semester: user.semester == null ? "" : String(user.semester), branch: user.branch || "",
+        targetRole: user.target_role || "", accountRole: user.account_role || "student",
         college: user.college || "", cgpa: user.cgpa == null ? "" : String(user.cgpa),
-        readinessScore: Number(user.readiness_score || 0),
+        readinessScore: Number(skillCount.total) > 0 ? Number(user.readiness_score || 0) : null,
+        onboardingComplete: Boolean(user.onboarding_completed_at),
         skills: Object.fromEntries(skills.map(row => [row.skill_name, {
           current: Number(row.proficiency_score), required: 0, category: row.category, missing: false
         }])),

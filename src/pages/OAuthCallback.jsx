@@ -19,7 +19,7 @@ export default function OAuthCallback() {
       return;
     }
     completeOAuthLogin(code).then(result => {
-      if (result.success) navigate('/dashboard', { replace: true });
+      if (result.success) navigate(result.onboardingComplete ? '/dashboard' : '/onboarding', { replace: true });
       else setError(result.message || 'Unable to complete sign-in. Please try again.');
     }).catch(() => setError('Unable to complete sign-in. Please try again.'));
   }, [completeOAuthLogin, navigate]);

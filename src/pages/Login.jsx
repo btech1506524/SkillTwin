@@ -46,7 +46,7 @@ export default function Login() {
         if (res.offlineFallback) {
           setInfoMsg('Logged in with offline profile fallback.');
         }
-        navigate('/dashboard');
+        navigate(res.onboardingComplete ? '/dashboard' : '/onboarding');
       } else {
         setErrorMsg(res?.message || 'Invalid email or password.');
       }

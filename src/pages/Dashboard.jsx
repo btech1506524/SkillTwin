@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Brain, Target, TrendingUp, FileText, CheckCircle2, Circle, AlertCircle, 
-  Sparkles, Award, ArrowUpRight, BarChart3, BookOpen, Layers, 
+  Sparkles, Award, ArrowUpRight, ArrowRight, BarChart3, BookOpen, Layers,
   Cpu, Database, Shield, Code, ChevronRight, Sliders, Play, RotateCcw,
   User, GraduationCap, Building2, Check, RefreshCw, ClipboardCheck
 } from 'lucide-react';
@@ -23,7 +23,7 @@ const summarizeRoadmapItems = (items) => {
     completed,
     inProgress,
     planned,
-    percentage: items.length ? Math.round(completed / items.length * 100) : 100
+    percentage: items.length ? Math.round(completed / items.length * 100) : 0
   };
 };
 
@@ -52,37 +52,24 @@ export default function Dashboard() {
   }, [refreshCareerReadiness]);
 
   // If user is null, fallback cleanly or use session
-  const student = user || {
-    name: 'Sanjay Kumar',
-    email: 'sanjay.cse@student.edu',
-    semester: '5',
-    branch: 'Computer Science & Engineering',
-    college: 'National Institute of Technology',
-    cgpa: '8.6',
-    targetRole: 'Software Developer',
-    readinessScore: 68,
-    skills: {
-      'Data Structures & Algorithms': { current: 65, required: 85, category: 'Core CS' },
-      'Object-Oriented Programming (Java/C++)': { current: 75, required: 80, category: 'Core CS' },
-      'DBMS & SQL Queries': { current: 80, required: 75, category: 'Database' },
-      'Operating Systems & Linux': { current: 60, required: 70, category: 'Core CS' },
-      'Computer Networks': { current: 50, required: 65, category: 'Core CS' },
-      'React.js & Frontend': { current: 72, required: 70, category: 'Development' },
-      'Node.js & REST APIs': { current: 55, required: 75, category: 'Development' },
-      'Git, Docker & CI/CD': { current: 35, required: 60, category: 'DevOps' },
-      'System Design Fundamentals': { current: 30, required: 65, category: 'Architecture' }
-    },
-    completedMilestones: ['milestone-1', 'milestone-2']
-  };
+  const student = user || {};
 
-  const currentScore = student.readinessScore ?? 68;
+  const readinessCalculated = student.readinessScore != null;
+  const currentScore = readinessCalculated ? Number(student.readinessScore) : 0;
   const effectiveScore = Math.min(100, currentScore + (simulationActive ? simulatedBoost : 0));
 
   // Dynamic skill statistics computed directly from student.skills (ERR-043 fix)
   const skillsObj = student.skills || {};
-  const dsaLevel = skillsObj['Data Structures & Algorithms']?.current ?? 65;
-  const dbmsLevel = skillsObj['DBMS & SQL Queries']?.current ?? 80;
-  const devopsLevel = skillsObj['Git, Docker & CI/CD']?.current ?? 35;
+  const dsaLevel = skillsObj['Data Structures & Algorithms']?.missing ? null : skillsObj['Data Structures & Algorithms']?.current;
+  const dbmsLevel = skillsObj['DBMS & SQL Queries']?.missing ? null : skillsObj['DBMS & SQL Queries']?.current;
+  const devopsLevel = skillsObj['Git, Docker & CI/CD']?.missing ? null : skillsObj['Git, Docker & CI/CD']?.current;
+  const displayedSkills = student.demo
+    ? Object.entries(student.skills || {})
+    : (student.savedSkills || []).map(skill => [skill.skillName, {
+      current: skill.current,
+      required: skillsObj[skill.skillName]?.missing ? null : skillsObj[skill.skillName]?.required ?? null,
+      category: skill.category
+    }]);
 
   const fallbackRoadmapItems = [
     {
@@ -120,7 +107,7 @@ export default function Dashboard() {
   ];
 
   const syncRoadmap = async (regenerate = false) => {
-    if (!localStorage.getItem('skilltwin_token')) {
+    if (!localStorage.getItem('skilltwin_token') && student.demo) {
       setRoadmapItems(fallbackRoadmapItems);
       setRoadmapProgress(summarizeRoadmapItems(fallbackRoadmapItems));
       setRoadmapError('');
@@ -143,6 +130,10 @@ export default function Dashboard() {
       }));
       setRoadmapItems(items);
       setRoadmapProgress(response.roadmap.progress || summarizeRoadmapItems(items));
+    } else if (response?.success) {
+      setRoadmapItems([]);
+      setRoadmapProgress({ total: 0, completed: 0, inProgress: 0, planned: 0, percentage: 0 });
+      setRoadmapError('');
     } else {
       setRoadmapError(response?.message || 'Unable to load your learning roadmap.');
     }
@@ -154,7 +145,7 @@ export default function Dashboard() {
   }, [user?.id, student.targetRole]);
 
   const handleRoadmapMilestone = async (item) => {
-    if (!localStorage.getItem('skilltwin_token')) {
+    if (!localStorage.getItem('skilltwin_token') && student.demo) {
       await toggleMilestone?.(item.id);
       return;
     }
@@ -261,7 +252,7 @@ export default function Dashboard() {
   };
 
   // Safe initial for avatar (ERR-031 fix)
-  const avatarInitial = (student.name || 'Sanjay').trim().charAt(0).toUpperCase() || 'S';
+  const avatarInitial = (student.name || 'S').trim().charAt(0).toUpperCase() || 'S';
 
   return (
     <div className="dashboard-page">
@@ -282,7 +273,7 @@ export default function Dashboard() {
                   <h1>{student.name || 'Student Profile'}</h1>
                   <span className="badge-sem">{student.semester ? `Semester ${student.semester}` : 'Semester not set'}</span>
                   <span className="badge-status">
-                    <Sparkles size={12} /> Twin Active
+                    <Sparkles size={12} /> Profile saved
                   </span>
                 </div>
                 <div className="profile-meta-row">
@@ -291,6 +282,7 @@ export default function Dashboard() {
                   <span><Award size={14} /> CGPA: <strong>{student.cgpa || 'Not added'}</strong></span>
                 </div>
               </div>
+              {!student.demo && <Link className="profile-edit-link" to="/onboarding?edit=1">Edit profile and skills</Link>}
             </div>
 
             <div className="profile-role-switcher">
@@ -364,19 +356,19 @@ export default function Dashboard() {
                   </defs>
                 </svg>
                 <div className="gauge-number">
-                  <strong>{effectiveScore}%</strong>
-                  <span>{effectiveScore >= 75 ? 'At displayed target' : 'Building skills'}</span>
+                  <strong>{readinessCalculated ? `${effectiveScore}%` : '—'}</strong>
+                  <span>{readinessCalculated ? (effectiveScore >= 75 ? 'At displayed target' : 'Building skills') : 'Not calculated yet'}</span>
                 </div>
               </div>
 
               <div className="gauge-insights">
                 <div className="insight-row">
                   <span>Profile status</span>
-                  <strong className="tier-badge">{effectiveScore >= 75 ? 'Target met' : 'Target in progress'}</strong>
+                  <strong className="tier-badge">{readinessCalculated ? (effectiveScore >= 75 ? 'Target met' : 'Target in progress') : 'Awaiting skill ratings'}</strong>
                 </div>
                 <div className="insight-row">
                   <span>Benchmark</span>
-                  <span>Illustrative profile target</span>
+                  <span>Based on saved skill ratings</span>
                 </div>
               </div>
             </div>
@@ -390,9 +382,9 @@ export default function Dashboard() {
               </div>
               <div className="stat-content">
                 <span className="stat-title">DSA & Problem Solving</span>
-                <h4>{dsaLevel >= 75 ? 'Advanced' : dsaLevel >= 50 ? 'Level 3 (Medium)' : 'Foundational'} ({dsaLevel}%)</h4>
+                <h4>{dsaLevel == null ? 'Not rated yet' : `${dsaLevel >= 75 ? 'Advanced' : dsaLevel >= 50 ? 'Intermediate' : 'Foundational'} (${dsaLevel}%)`}</h4>
                 <div className="stat-bar-box">
-                  <div className="stat-bar-fill" style={{ width: `${dsaLevel}%` }}></div>
+                  <div className="stat-bar-fill" style={{ width: `${dsaLevel || 0}%` }}></div>
                 </div>
               </div>
             </div>
@@ -403,9 +395,9 @@ export default function Dashboard() {
               </div>
               <div className="stat-content">
                 <span className="stat-title">Databases & Architecture</span>
-                <h4>{dbmsLevel}% Proficiency</h4>
+                <h4>{dbmsLevel == null ? 'Not rated yet' : `${dbmsLevel}% Proficiency`}</h4>
                 <div className="stat-bar-box">
-                  <div className="stat-bar-fill" style={{ width: `${dbmsLevel}%` }}></div>
+                  <div className="stat-bar-fill" style={{ width: `${dbmsLevel || 0}%` }}></div>
                 </div>
               </div>
             </div>
@@ -415,10 +407,10 @@ export default function Dashboard() {
                 <Cpu size={20} />
               </div>
               <div className="stat-content">
-                <span className="stat-title">DevOps & Cloud {devopsLevel < 50 ? '(Gap Area)' : ''}</span>
-                <h4 className={devopsLevel < 50 ? "text-warning" : ""}>{devopsLevel}% {devopsLevel < 50 ? 'Needs Attention' : 'Proficiency'}</h4>
+                <span className="stat-title">DevOps & Cloud {devopsLevel != null && devopsLevel < 50 ? '(Gap Area)' : ''}</span>
+                <h4 className={devopsLevel != null && devopsLevel < 50 ? "text-warning" : ""}>{devopsLevel == null ? 'Not rated yet' : `${devopsLevel}% ${devopsLevel < 50 ? 'Needs Attention' : 'Proficiency'}`}</h4>
                 <div className="stat-bar-box">
-                  <div className={`stat-bar-fill ${devopsLevel < 50 ? 'warning' : ''}`} style={{ width: `${devopsLevel}%` }}></div>
+                  <div className={`stat-bar-fill ${devopsLevel != null && devopsLevel < 50 ? 'warning' : ''}`} style={{ width: `${devopsLevel || 0}%` }}></div>
                 </div>
               </div>
             </div>
@@ -476,7 +468,11 @@ export default function Dashboard() {
                 <div className="pane-header">
                   <div>
                     <h2>Role Skill Matrix</h2>
-                    <p>Skill targets are based on your selected {student.targetRole || 'career'} role. Adjust your proficiency to update readiness.</p>
+                    <p>These are requirements for {student.targetRole || 'your selected career'}. Your saved skills appear only after you rate and save them.</p>
+                    {!student.demo && !student.savedSkills?.length && <div className="onboarding-empty-state">
+                      <p>No skills are saved to your profile yet. Add only skills you have practiced; readiness stays uncalculated until then.</p>
+                      <Link to="/onboarding?edit=1">Add skills to my profile <ArrowRight size={15} /></Link>
+                    </div>}
                     {skillUpdateError && <p className="assessment-error" role="alert">{skillUpdateError}</p>}
                     {student.readinessSummary && (
                       <p className="readiness-gap-summary" role="status">
@@ -491,13 +487,16 @@ export default function Dashboard() {
                 </div>
 
                 <div className="skills-interactive-grid">
-                  {Object.entries(student.skills || {}).map(([name, data]) => {
-                    const isGap = data.current < data.required;
+                  {displayedSkills.map(([name, data]) => {
+                    const hasTarget = data.required != null;
+                    const isGap = hasTarget && data.current < data.required;
                     return (
                       <div key={name} className={`skill-slider-card ${isGap ? 'has-gap' : 'on-target'}`}>
                         <div className="skill-card-top">
                           <span className="skill-category-tag">{data.category}</span>
-                          {isGap ? (
+                          {!hasTarget ? (
+                            <span className="good-tag"><CheckCircle2 size={12} /> Your skill</span>
+                          ) : isGap ? (
                             <span className="gap-tag"><AlertCircle size={12} /> {data.missing ? 'Missing' : `Gap: ${data.required - data.current}%`}</span>
                           ) : (
                             <span className="good-tag"><CheckCircle2 size={12} /> Target Met</span>
@@ -508,11 +507,11 @@ export default function Dashboard() {
 
                         <div className="skill-numbers">
                           <span>Current: <strong>{data.current}%</strong></span>
-                          <span>Target: <strong>{data.required}%</strong></span>
+                          <span>Target: <strong>{hasTarget ? `${data.required}%` : 'Not in role benchmark'}</strong></span>
                         </div>
 
                         <div className="dual-progress-bar">
-                          <div className="progress-required-marker" style={{ left: `${data.required}%` }}></div>
+                          {hasTarget && <div className="progress-required-marker" style={{ left: `${data.required}%` }}></div>}
                           <div className="progress-current-fill" style={{ width: `${data.current}%` }}></div>
                         </div>
 
@@ -542,7 +541,7 @@ export default function Dashboard() {
                 <div className="pane-header">
                   <div>
                     <h2>{localStorage.getItem('skilltwin_token') ? `${student.targetRole || 'Career'} Learning Roadmap` : 'Semester 5 Placement Milestone Plan'}</h2>
-                    <p>{localStorage.getItem('skilltwin_token') ? 'Ordered learning milestones generated from your role requirements and current skill gaps.' : 'Actionable weekly checklist structured around Sem 5 university exams and upcoming on-campus placements.'}</p>
+                    <p>{localStorage.getItem('skilltwin_token') ? 'Ordered learning milestones generated from your role requirements and current skill gaps.' : 'Illustrative demo checklist for exploring the roadmap tools.'}</p>
                   </div>
                   <div className="roadmap-progress-indicator">
                     <span>{roadmapProgress.percentage}% complete · {roadmapProgress.completed} completed · {roadmapProgress.inProgress} in progress · {roadmapProgress.planned} pending</span>
@@ -560,7 +559,7 @@ export default function Dashboard() {
 
                 {roadmapError && <p className="assessment-error" role="alert">{roadmapError}</p>}
                 {roadmapLoading && !roadmapItems.length && <p className="roadmap-loading" role="status">Building your personalized roadmap…</p>}
-                {!roadmapLoading && !roadmapError && !roadmapItems.length && <p className="roadmap-loading">You currently meet every role skill target. Regenerate after updating your skill profile to refresh this plan.</p>}
+                {!roadmapLoading && !roadmapError && !roadmapItems.length && <p className="roadmap-loading">{!readinessCalculated ? 'Save at least one skill rating to build a roadmap from your profile.' : 'There are no open skill gaps for this role yet. Update your skill ratings to refresh this plan.'}</p>}
 
                 <div className="roadmap-timeline">
                   {roadmapItems.map((item, idx) => {
@@ -616,7 +615,12 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                <div className="simulator-scenarios-grid">
+                {!readinessCalculated && <div className="onboarding-empty-state">
+                  <p>Readiness scenarios are unavailable until you save skill ratings. Add only skills you have practiced to calculate a starting score.</p>
+                  <Link to="/onboarding?edit=1">Add or update skills <ArrowRight size={15} /></Link>
+                </div>}
+
+                {readinessCalculated && <div className="simulator-scenarios-grid">
                   <div 
                     className={`scenario-card ${simulatedSkills.includes('LeetCode 150') ? 'active-scenario' : ''}`}
                     onClick={() => handleSimulateScenario(9, 'LeetCode 150')}
@@ -676,13 +680,13 @@ export default function Dashboard() {
                       {simulatedSkills.includes('System Design Mini') ? '✓ Scenario Applied' : '+ Click to Simulate'}
                     </div>
                   </div>
-                </div>
+                </div>}
 
                 {simulationActive && (
                   <div className="simulation-result-banner">
                     <div className="sim-result-text">
                       <h4>Simulation Active: Readiness jumps from <strong>{currentScore}%</strong> to <span className="highlight-score">{effectiveScore}%</span></h4>
-                      <p>Applying these {simulatedSkills.length} milestones moves you into the top 15% tier for {student.targetRole || 'Software Developer'} campus drives.</p>
+                      <p>This is a rule-based scenario preview. It does not update your saved skill profile or guarantee a placement outcome.</p>
                     </div>
                     {/* ERR-033 FIX: Keep user inside dashboard, switch tab to roadmap */}
                     <button 
@@ -722,14 +726,6 @@ export default function Dashboard() {
                       <div className="resume-character-count">{resumeText.length.toLocaleString()} / 20,000 characters</div>
 
                       <div className="resume-actions-bar">
-                        <button 
-                          type="button" 
-                          className="secondary-btn"
-                          onClick={() => setResumeText("B.Tech Computer Science (Sem 5), CGPA 8.6. Built e-commerce web application with React, Express, MongoDB. Implemented user auth with JWT. Proficient in Java, C++, Data Structures, SQL.")}
-                        >
-                          Load Sample Resume
-                        </button>
-
                         <button type="submit" className="primary-btn glow-btn" disabled={isAnalyzing}>
                           {isAnalyzing ? (
                             <>

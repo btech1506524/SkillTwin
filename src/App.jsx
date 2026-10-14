@@ -1,22 +1,38 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import OAuthCallback from "./pages/OAuthCallback";
 
 // ERR-019 & ERR-021 FIX: Protected Route component guarding /dashboard
 function ProtectedRoute({ children }) {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
+
+  if (!authReady) return <main className="loading-screen">Loading your profile…</main>;
   
   // If user is authenticated or demo session is initialized, permit access
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  if (!user.demo && !user.onboardingComplete) return <Navigate to="/onboarding" replace />;
+
   return children;
+}
+
+function OnboardingRoute() {
+  const { user, authReady } = useAuth();
+  const location = useLocation();
+  if (!authReady) return <main className="loading-screen">Loading your profile…</main>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.demo) return <Navigate to="/dashboard" replace />;
+  if (user.onboardingComplete && !new URLSearchParams(location.search).has('edit')) return <Navigate to="/dashboard" replace />;
+  return <Onboarding />;
 }
 
 function BackendAdminRedirect() {
@@ -41,6 +57,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/onboarding" element={<OnboardingRoute />} />
           <Route path="/oauth/callback" element={<OAuthCallback />} />
           {/* Guarded dashboard route */}
           <Route 

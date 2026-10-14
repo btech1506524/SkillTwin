@@ -23,23 +23,10 @@ router.post("/register", async (req, res) => {
   let connection;
   try {
     // Accept either 'name' (frontend) or 'full_name' (legacy) — ERR-003
-    const {
-      name,
-      full_name,
-      email,
-      password,
-      phone,
-      college,
-      branch,
-      semester,
-      targetRole,
-      graduation_year
-    } = req.body || {};
+    const { name, full_name, email, password } = req.body || {};
 
     const studentName = typeof (name || full_name) === "string" ? (name || full_name).trim() : "";
     const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
-    const selectedRole = typeof targetRole === "string" && targetRole.trim() ? targetRole.trim() : "Software Developer";
-    const selectedSemester = Number(semester ?? 5);
 
     if (!studentName || !normalizedEmail || typeof password !== "string") {
       return res.status(400).json({
@@ -49,19 +36,12 @@ router.post("/register", async (req, res) => {
     }
     if (studentName.length > 160 || normalizedEmail.length > 254 ||
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ||
-        password.length < 6 || Buffer.byteLength(password, "utf8") > 72 ||
-        !Number.isInteger(selectedSemester) || selectedSemester < 3 || selectedSemester > 8 ||
-        (branch != null && (typeof branch !== "string" || branch.length > 160)) ||
-        (college != null && (typeof college !== "string" || college.length > 200)) ||
-        (phone != null && (typeof phone !== "string" || phone.length > 40))) {
-      return res.status(400).json({ success: false, message: "Please provide valid profile details, a semester from 3 to 8, and a password of 6–72 bytes." });
+        password.length < 6 || Buffer.byteLength(password, "utf8") > 72) {
+      return res.status(400).json({ success: false, message: "Provide a valid name, email, and password of 6–72 bytes." });
     }
     if (!process.env.JWT_SECRET) {
       return res.status(503).json({ success: false, message: "Authentication is temporarily unavailable." });
     }
-
-    const [roleRows] = await db.query("SELECT role_id FROM career_roles WHERE role_name = ?", [selectedRole]);
-    if (!roleRows.length) return res.status(400).json({ success: false, message: "Choose a supported target role." });
 
     connection = await db.getConnection();
     await connection.beginTransaction();
@@ -81,20 +61,8 @@ router.post("/register", async (req, res) => {
     const password_hash = await bcrypt.hash(password, 10);
 
     const [result] = await connection.query(
-      `INSERT INTO users
-      (full_name, email, password_hash, phone, college, branch, graduation_year, semester, target_role)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        studentName,
-        normalizedEmail,
-        password_hash,
-        phone || null,
-        college || null,
-        branch || null,
-        graduation_year || null,
-        selectedSemester,
-        selectedRole
-      ]
+      "INSERT INTO users (full_name, email, password_hash) VALUES (?, ?, ?)",
+      [studentName, normalizedEmail, password_hash]
     );
 
     await connection.commit();
@@ -115,15 +83,16 @@ router.post("/register", async (req, res) => {
         id: result.insertId,
         name: studentName,
         email: normalizedEmail,
-        semester: String(selectedSemester),
-        branch: branch || "Computer Science & Engineering",
-        targetRole: selectedRole,
+        semester: "",
+        branch: "",
+        targetRole: "",
         accountRole: "student",
-        college: college || "",
+        college: "",
         cgpa: "",
-        readinessScore: 0,
+        readinessScore: null,
         skills: {},
-        completedMilestones: []
+        completedMilestones: [],
+        onboardingComplete: false
       }
     });
 
@@ -192,6 +161,7 @@ router.post("/login", async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    const [[skillCount]] = await db.query("SELECT COUNT(*) AS total FROM user_skills WHERE user_id = ?", [user.user_id]);
     const [skillRows] = await db.query(
       `SELECT s.skill_name, s.category, us.proficiency_score FROM user_skills us
        JOIN skills s ON s.skill_id = us.skill_id WHERE us.user_id = ?`, [user.user_id]
@@ -219,15 +189,16 @@ router.post("/login", async (req, res) => {
         id: user.user_id,
         name: user.full_name,
         email: user.email,
-        semester: user.semester || "5",
+        semester: user.semester == null ? "" : String(user.semester),
         branch: user.branch || "",
-        targetRole: user.target_role || "Software Developer",
+        targetRole: user.target_role || "",
         accountRole: user.account_role || "student",
         college: user.college || "",
         cgpa: user.cgpa == null ? "" : String(user.cgpa),
-        readinessScore: Number(user.readiness_score || 0),
+        readinessScore: Number(skillCount.total) > 0 ? Number(user.readiness_score || 0) : null,
         skills: toSkillMap(skillRows),
-        completedMilestones: milestoneRows.map(row => row.milestone_key)
+        completedMilestones: milestoneRows.map(row => row.milestone_key),
+        onboardingComplete: Boolean(user.onboarding_completed_at)
       }
     });
 
@@ -248,7 +219,9 @@ router.get("/profile", authMiddleware, async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT user_id, full_name, email, phone, college, branch, semester,
-              target_role, cgpa, readiness_score, account_role, graduation_year
+              target_role, cgpa, readiness_score, account_role, graduation_year,
+              onboarding_completed_at,
+              (SELECT COUNT(*) FROM user_skills WHERE user_id = users.user_id) AS skill_count
        FROM users
        WHERE user_id = ?`,
       [req.user.user_id]

@@ -3,7 +3,8 @@ import { apiService } from '../services/api';
 
 const AuthContext = createContext(null);
 
-const DEFAULT_DEMO_STUDENT = {
+const DEMO_STUDENT = {
+  demo: true,
   id: 'student-sem5-01',
   name: 'Sanjay Kumar',
   email: 'sanjay.cse@student.edu',
@@ -28,10 +29,22 @@ const DEFAULT_DEMO_STUDENT = {
 };
 
 const normalizeUser = (user) => ({
-  ...DEFAULT_DEMO_STUDENT,
   ...user,
+  id: user?.id ?? null,
+  name: user?.name || '',
+  email: user?.email || '',
+  semester: user?.semester == null ? '' : String(user.semester),
+  branch: user?.branch || '',
+  college: user?.college || '',
+  cgpa: user?.cgpa == null ? '' : String(user.cgpa),
+  targetRole: user?.targetRole || '',
+  readinessScore: user?.readinessScore == null ? null : Number(user.readinessScore),
+  onboardingComplete: Boolean(user?.onboardingComplete),
   accountRole: user?.accountRole === 'admin' ? 'admin' : 'student',
   skills: user?.skills && typeof user.skills === 'object' ? { ...user.skills } : {},
+  savedSkills: Array.isArray(user?.savedSkills) ? user.savedSkills : Object.entries(user?.skills || {})
+    .filter(([, skill]) => skill && !skill.missing)
+    .map(([skillName, skill]) => ({ skillName, current: Number(skill.current), category: skill.category || '' })),
   completedMilestones: Array.isArray(user?.completedMilestones) ? user.completedMilestones : []
 });
 
@@ -40,15 +53,24 @@ export function AuthProvider({ children }) {
   const skillUpdateResolvers = useRef(new Map());
   const [user, setUser] = useState(() => {
     try {
+      if (!localStorage.getItem('skilltwin_token')) {
+        return sessionStorage.getItem('skilltwin_demo_mode') === 'true' ? DEMO_STUDENT : null;
+      }
       const saved = localStorage.getItem('skilltwin_user');
-      return saved ? JSON.parse(saved) : null;
+      return saved ? normalizeUser(JSON.parse(saved)) : null;
     } catch {
       return null;
     }
   });
+  const [authReady, setAuthReady] = useState(() => !localStorage.getItem('skilltwin_token'));
 
   // ERR-020: Sync storage cleanly
   useEffect(() => {
+    if (user?.demo) {
+      localStorage.removeItem('skilltwin_user');
+      localStorage.removeItem('skilltwin_token');
+      return;
+    }
     if (user) {
       localStorage.setItem('skilltwin_user', JSON.stringify(user));
     } else {
@@ -70,8 +92,8 @@ export function AuthProvider({ children }) {
       }
       const profile = response.user;
       if (response.success && profile) {
-        setUser(previous => previous ? normalizeUser({
-          ...previous,
+        setUser(previous => normalizeUser({
+          ...(previous || {}),
           id: profile.user_id,
           name: profile.full_name,
           email: profile.email,
@@ -81,12 +103,13 @@ export function AuthProvider({ children }) {
           semester: String(profile.semester),
           targetRole: profile.target_role,
           cgpa: profile.cgpa,
-          readinessScore: Number(profile.readiness_score || 0),
+          readinessScore: Number(profile.skill_count || 0) > 0 ? Number(profile.readiness_score || 0) : null,
           accountRole: profile.account_role,
-          graduationYear: profile.graduation_year
-        }) : previous);
+          graduationYear: profile.graduation_year,
+          onboardingComplete: Boolean(profile.onboarding_completed_at)
+        }));
       }
-    });
+    }).finally(() => { if (active) setAuthReady(true); });
     return () => { active = false; };
   }, []);
 
@@ -97,8 +120,10 @@ export function AuthProvider({ children }) {
     // Success from backend
     if (apiRes && apiRes.success && apiRes.user && apiRes.token) {
       localStorage.setItem('skilltwin_token', apiRes.token);
+      sessionStorage.removeItem('skilltwin_demo_mode');
       setUser(normalizeUser(apiRes.user));
-      return { success: true };
+      setAuthReady(true);
+      return { success: true, onboardingComplete: Boolean(apiRes.user.onboardingComplete) };
     }
 
     // Backend explicitly returned an error (e.g. 401 Invalid Credentials)
@@ -115,31 +140,34 @@ export function AuthProvider({ children }) {
       return { success: false, message: apiRes?.message || 'Unable to complete sign-in. Please try again.' };
     }
     localStorage.setItem('skilltwin_token', apiRes.token);
+    sessionStorage.removeItem('skilltwin_demo_mode');
     setUser(normalizeUser(apiRes.user));
-    return { success: true };
+    setAuthReady(true);
+    return { success: true, onboardingComplete: Boolean(apiRes.user.onboardingComplete) };
   };
 
   const loginDemo = async () => {
     localStorage.removeItem('skilltwin_token');
-    setUser(DEFAULT_DEMO_STUDENT);
+    localStorage.removeItem('skilltwin_user');
+    sessionStorage.setItem('skilltwin_demo_mode', 'true');
+    setUser(DEMO_STUDENT);
     return { success: true };
   };
 
   // ERR-013 FIX: Distinguish server conflict/validation error from offline fallback
-  const signup = async ({ name, email, semester, branch, targetRole, password }) => {
+  const signup = async ({ name, email, password }) => {
     const apiRes = await apiService.register({
       name,
       email,
-      semester,
-      branch,
-      targetRole,
       password
     });
 
     if (apiRes && apiRes.success && apiRes.user && apiRes.token) {
       localStorage.setItem('skilltwin_token', apiRes.token);
+      sessionStorage.removeItem('skilltwin_demo_mode');
       setUser(normalizeUser(apiRes.user));
-      return { success: true };
+      setAuthReady(true);
+      return { success: true, onboardingComplete: Boolean(apiRes.user.onboardingComplete) };
     }
 
     if (apiRes && apiRes.success === false) {
@@ -153,12 +181,37 @@ export function AuthProvider({ children }) {
     setUser(null);
     localStorage.removeItem('skilltwin_user');
     localStorage.removeItem('skilltwin_token');
+    sessionStorage.removeItem('skilltwin_demo_mode');
+  };
+
+  const finishOnboarding = async () => {
+    const response = await apiService.getProfile();
+    if (response?.success && response.user) {
+      const profile = response.user;
+      setUser(previous => previous ? normalizeUser({
+        ...previous,
+        id: profile.user_id,
+        name: profile.full_name,
+        email: profile.email,
+        phone: profile.phone,
+        college: profile.college,
+        branch: profile.branch,
+        semester: profile.semester,
+        targetRole: profile.target_role,
+        cgpa: profile.cgpa,
+        graduationYear: profile.graduation_year,
+        readinessScore: profile.skill_count ? Number(profile.readiness_score || 0) : null,
+        onboardingComplete: Boolean(profile.onboarding_completed_at)
+      }) : previous);
+    }
+    await refreshCareerReadiness();
   };
 
   // ERR-015 FIX: Sync target role using dedicated updateTargetRole API endpoint
   const updateTargetRole = async (newRole) => {
     if (!user) return;
     if (!localStorage.getItem('skilltwin_token')) {
+      if (!user.demo) return { success: false, message: 'Sign in to save profile changes.' };
       setUser(prev => ({ ...prev, targetRole: newRole }));
       return { success: true, demo: true };
     }
@@ -175,12 +228,19 @@ export function AuthProvider({ children }) {
 
   const refreshCareerReadiness = useCallback(async () => {
     if (!localStorage.getItem('skilltwin_token')) return null;
-    const data = await apiService.getCareerReadiness();
+    const [data, saved] = await Promise.all([apiService.getCareerReadiness(), apiService.getStudentSkills()]);
     if (!data?.success) return null;
     setUser(prev => prev ? ({
       ...prev,
       targetRole: data.targetRole?.name || prev.targetRole,
       readinessScore: data.readinessScore,
+      savedSkills: saved?.success ? saved.skills.map(skill => ({
+        skillId: skill.skill_id,
+        skillName: skill.skill_name,
+        current: Number(skill.proficiency_score),
+        category: skill.category,
+        yearsExperience: Number(skill.years_experience || 0)
+      })) : prev.savedSkills,
       skills: Object.fromEntries(data.skills.map(skill => [skill.skillName, {
         current: skill.current,
         required: skill.required,
@@ -222,6 +282,8 @@ export function AuthProvider({ children }) {
         }, 300));
       });
     }
+
+    if (!user.demo) return { success: false, message: 'Sign in to save skill changes.' };
 
     setUser(prev => {
       const updatedSkills = {
@@ -268,6 +330,7 @@ export function AuthProvider({ children }) {
 
   const toggleMilestone = async (milestoneId) => {
     if (!user) return;
+    if (!localStorage.getItem('skilltwin_token') && !user.demo) return { success: false, message: 'Sign in to save roadmap progress.' };
 
     const previous = user.completedMilestones || [];
 
@@ -293,10 +356,12 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user,
+      authReady,
       login,
       completeOAuthLogin,
       loginDemo,
       signup,
+      finishOnboarding,
       logout,
       updateTargetRole,
       updateSkill,

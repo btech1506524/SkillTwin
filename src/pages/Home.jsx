@@ -91,10 +91,10 @@ export default function Home() {
             <div className="dashboard-glow"></div>
             <div className="dashboard-header">
               <div>
-                <small>Your Career Twin (Interactive)</small>
+                <small>Illustrative dashboard preview · not your saved data</small>
                 <h3>Software Developer</h3>
               </div>
-              <div className="status-badge"><div className="status-dot"></div> Active</div>
+              <div className="status-badge"><div className="status-dot"></div> Preview</div>
             </div>
             <div className="readiness">
               <div className="score-ring">

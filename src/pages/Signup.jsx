@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Brain, Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles, GraduationCap, Target, Zap, AlertCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Brain, Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles, Zap, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import OAuthButtons from '../components/OAuthButtons';
 
@@ -10,17 +10,10 @@ export default function Signup() {
   const [errorMsg, setErrorMsg] = useState('');
   const { signup, loginDemo } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const allowedRoles = ['Software Developer', 'Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'AI / ML Engineer', 'Data Analyst'];
-  const requestedRole = searchParams.get('targetRole');
-
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
-    semester: '5',
-    branch: 'Computer Science & Engineering',
-    targetRole: allowedRoles.includes(requestedRole) ? requestedRole : 'Software Developer'
+    password: ''
   });
 
   const handleChange = (e) => {
@@ -37,15 +30,12 @@ export default function Signup() {
       const res = await signup({
         name: formData.name,
         email: formData.email,
-        password: formData.password, // ERR-011: Now explicitly passed!
-        semester: formData.semester,
-        branch: formData.branch,
-        targetRole: formData.targetRole
+        password: formData.password
       });
 
       setLoading(false);
       if (res && res.success) {
-        navigate('/dashboard');
+        navigate(res.onboardingComplete ? '/dashboard' : '/onboarding');
       } else {
         setErrorMsg(res?.message || 'Failed to create student account.');
       }
@@ -161,38 +151,6 @@ export default function Signup() {
                     onChange={handleChange}
                     required
                   />
-                </div>
-              </div>
-
-              <div className="input-row-dual">
-                <div className="input-group">
-                  <label>Semester</label>
-                  <div className="input-wrapper">
-                    <GraduationCap size={18} className="input-icon" />
-                    <select name="semester" value={formData.semester} onChange={handleChange} required>
-                      <option value="3">Semester 3</option>
-                      <option value="4">Semester 4</option>
-                      <option value="5">Semester 5 (Active)</option>
-                      <option value="6">Semester 6</option>
-                      <option value="7">Semester 7</option>
-                      <option value="8">Semester 8</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="input-group">
-                  <label>Target Career Goal</label>
-                  <div className="input-wrapper">
-                    <Target size={18} className="input-icon" />
-                    <select name="targetRole" value={formData.targetRole} onChange={handleChange} required>
-                      <option value="Software Developer">Software Developer</option>
-                      <option value="Frontend Developer">Frontend Developer</option>
-                      <option value="Backend Developer">Backend Developer</option>
-                      <option value="Full Stack Developer">Full Stack Developer</option>
-                      <option value="AI / ML Engineer">AI / ML Engineer</option>
-                      <option value="Data Analyst">Data Analyst</option>
-                    </select>
-                  </div>
                 </div>
               </div>
 

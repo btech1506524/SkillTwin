@@ -38,15 +38,22 @@ async function getCareerReadiness(userId) {
   if (!rows.length) {
     return {
       targetRole: null,
-      readinessScore: 0,
+      readinessScore: null,
       totalRequiredSkills: 0,
       missingCount: 0,
       belowTargetCount: 0,
       metCount: 0,
+      hasProfiledSkills: false,
       skills: [],
       gaps: []
     };
   }
+
+  const [[profiled]] = await db.query(
+    "SELECT COUNT(*) AS total FROM user_skills WHERE user_id = ?",
+    [userId]
+  );
+  const hasProfiledSkills = Number(profiled?.total || 0) > 0;
 
   const skills = rows.map(row => {
     const required = levelScores[row.required_level] || 50;
@@ -73,7 +80,8 @@ async function getCareerReadiness(userId) {
 
   return {
     targetRole: { id: rows[0].role_id, name: rows[0].role_name },
-    readinessScore: totalRequired ? Math.round(totalCurrent / totalRequired * 100) : 0,
+    readinessScore: hasProfiledSkills && totalRequired ? Math.round(totalCurrent / totalRequired * 100) : null,
+    hasProfiledSkills,
     totalRequiredSkills: skills.length,
     missingCount,
     belowTargetCount,
@@ -85,7 +93,9 @@ async function getCareerReadiness(userId) {
 
 async function refreshAndPersistReadiness(userId) {
   const readiness = await getCareerReadiness(userId);
-  await db.query("UPDATE users SET readiness_score = ? WHERE user_id = ?", [readiness.readinessScore, userId]);
+  if (readiness.readinessScore !== null) {
+    await db.query("UPDATE users SET readiness_score = ? WHERE user_id = ?", [readiness.readinessScore, userId]);
+  }
   return readiness;
 }
 
@@ -111,6 +121,7 @@ router.get("/profile", authMiddleware, async (req, res) => {
         cgpa,
         readiness_score,
         graduation_year,
+        onboarding_completed_at,
         created_at
        FROM users
        WHERE user_id = ?`,
@@ -141,11 +152,141 @@ router.get("/profile", authMiddleware, async (req, res) => {
   }
 });
 
+// Resumeable profile and skill setup. Every personal record is scoped to the
+// authenticated user; the client never supplies a user id.
+router.get("/onboarding", authMiddleware, async (req, res) => {
+  try {
+    const [[profile]] = await db.query(
+      `SELECT user_id, full_name, email, phone, college, branch, semester,
+              target_role, cgpa, graduation_year, onboarding_completed_at
+       FROM users WHERE user_id = ?`, [req.user.user_id]
+    );
+    if (!profile) return res.status(404).json({ success: false, message: "Student not found." });
+    const [[skills], [roles]] = await Promise.all([
+      db.query(
+        `SELECT s.skill_id AS skillId, s.skill_name AS skillName, s.category,
+                s.description, us.proficiency_score AS proficiencyScore,
+                us.years_experience AS yearsExperience
+         FROM skills s LEFT JOIN user_skills us
+           ON us.skill_id = s.skill_id AND us.user_id = ?
+         ORDER BY s.category, s.skill_name`, [req.user.user_id]
+      ),
+      db.query("SELECT role_id AS id, role_name AS name FROM career_roles ORDER BY role_name")
+    ]);
+    res.json({
+      success: true,
+      complete: Boolean(profile.onboarding_completed_at),
+      profile: {
+        id: profile.user_id, name: profile.full_name, email: profile.email,
+        phone: profile.phone || "", college: profile.college || "",
+        branch: profile.branch || "", semester: String(profile.semester || ""),
+        targetRole: profile.target_role || "", cgpa: profile.cgpa == null ? "" : String(profile.cgpa),
+        graduationYear: profile.graduation_year == null ? "" : String(profile.graduation_year)
+      },
+      skills: skills.map(skill => ({
+        ...skill,
+        proficiencyScore: skill.proficiencyScore == null ? null : Number(skill.proficiencyScore),
+        yearsExperience: skill.yearsExperience == null ? 0 : Number(skill.yearsExperience)
+      })),
+      roles
+    });
+  } catch (error) {
+    console.error("Onboarding fetch error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to load your profile setup." });
+  }
+});
+
+router.put("/onboarding", authMiddleware, async (req, res) => {
+  const body = req.body || {};
+  const complete = body.complete !== false;
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const college = typeof body.college === "string" ? body.college.trim() : "";
+  const branch = typeof body.branch === "string" ? body.branch.trim() : "";
+  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  const targetRole = typeof body.targetRole === "string" ? body.targetRole.trim() : "";
+  const semester = body.semester === "" || body.semester == null ? null : Number(body.semester);
+  const cgpa = body.cgpa === "" || body.cgpa == null ? null : Number(body.cgpa);
+  const graduationYear = body.graduationYear === "" || body.graduationYear == null ? null : Number(body.graduationYear);
+  const skillsProvided = body.skills == null || Array.isArray(body.skills);
+  const skills = Array.isArray(body.skills) ? body.skills : [];
+  if ((complete && (!name || !college || !branch || !semester || !targetRole)) ||
+      name.length > 160 || college.length > 200 || branch.length > 160 || phone.length > 40 ||
+      (semester !== null && (!Number.isInteger(semester) || semester < 1 || semester > 12)) || targetRole.length > 120 ||
+      (cgpa !== null && (!Number.isFinite(cgpa) || cgpa < 0 || cgpa > 10)) ||
+      (graduationYear !== null && (!Number.isInteger(graduationYear) || graduationYear < 2000 || graduationYear > 2200)) ||
+      !skillsProvided || skills.length > 100) {
+    return res.status(400).json({ success: false, message: "Add your name, college, branch, semester, and career goal." });
+  }
+  const skillIds = skills.map(skill => Number(skill?.skillId));
+  if (skillIds.some((id, i) => !Number.isSafeInteger(id) || id < 1 || skillIds.indexOf(id) !== i) ||
+      skills.some(skill => !Number.isInteger(Number(skill?.proficiencyScore)) || Number(skill.proficiencyScore) < 0 || Number(skill.proficiencyScore) > 100 ||
+        !Number.isFinite(Number(skill?.yearsExperience ?? 0)) || Number(skill.yearsExperience ?? 0) < 0 || Number(skill.yearsExperience ?? 0) > 80)) {
+    return res.status(400).json({ success: false, message: "Choose valid skills and proficiency ratings from 0 to 100." });
+  }
+
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [role] = targetRole ? await connection.query("SELECT role_id FROM career_roles WHERE role_name = ?", [targetRole]) : [[]];
+    if (targetRole && !role.length) {
+      await connection.rollback();
+      return res.status(400).json({ success: false, message: "Choose a supported career goal." });
+    }
+    const [catalog] = skillIds.length ? await connection.query(
+      `SELECT skill_id FROM skills WHERE skill_id IN (${skillIds.map(() => "?").join(",")})`, skillIds
+    ) : [[]];
+    if (catalog.length !== skillIds.length) {
+      await connection.rollback();
+      return res.status(400).json({ success: false, message: "One or more selected skills are unavailable." });
+    }
+    await connection.query(
+      `UPDATE users SET full_name = IF(? = '', full_name, ?), phone = ?, college = ?, branch = ?, semester = ?,
+         target_role = ?, cgpa = ?, graduation_year = ?,
+         onboarding_completed_at = CASE WHEN ? THEN COALESCE(onboarding_completed_at, CURRENT_TIMESTAMP) ELSE onboarding_completed_at END
+       WHERE user_id = ?`,
+      [name, name, phone || null, college || null, branch || null, semester, targetRole || null, cgpa, graduationYear, complete, req.user.user_id]
+    );
+    // Onboarding is an explicit skill profile submission; replace only this
+    // student's current entries so deselected starter choices cannot linger.
+    await connection.query("DELETE FROM user_skills WHERE user_id = ?", [req.user.user_id]);
+    for (const skill of skills) {
+      const score = Number(skill.proficiencyScore);
+      const level = score >= 100 ? "Expert" : score >= 75 ? "Advanced" : score >= 50 ? "Intermediate" : "Beginner";
+      await connection.query(
+        `INSERT INTO user_skills (user_id, skill_id, proficiency_level, proficiency_score, years_experience)
+         VALUES (?, ?, ?, ?, ?)`,
+        [req.user.user_id, Number(skill.skillId), level, score, Number(skill.yearsExperience ?? 0)]
+      );
+    }
+    await connection.commit();
+    const readiness = await refreshAndPersistReadiness(req.user.user_id);
+    res.json({ success: true, complete, readinessScore: readiness.readinessScore });
+  } catch (error) {
+    await connection.rollback().catch(() => {});
+    console.error("Onboarding save error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to save your profile setup." });
+  } finally {
+    connection.release();
+  }
+});
+
 
 // =====================================================
 // GET STUDENT SKILLS
 // GET /api/student/skills
 // =====================================================
+
+router.get("/skills/catalog", authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT skill_id AS skillId, skill_name AS skillName, category, description FROM skills ORDER BY category, skill_name"
+    );
+    res.json({ success: true, skills: rows });
+  } catch (error) {
+    console.error("Skill catalogue error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to load the skill catalogue." });
+  }
+});
 
 router.get("/skills", authMiddleware, async (req, res) => {
   try {
@@ -283,6 +424,22 @@ router.put("/skills", authMiddleware, async (req, res) => {
       message: "Server error while updating skill."
     });
 
+  }
+});
+
+router.delete("/skills/:skillId", authMiddleware, async (req, res) => {
+  const skillId = Number(req.params.skillId);
+  if (!Number.isSafeInteger(skillId) || skillId < 1) {
+    return res.status(400).json({ success: false, message: "A valid skill id is required." });
+  }
+  try {
+    const [result] = await db.query("DELETE FROM user_skills WHERE user_id = ? AND skill_id = ?", [req.user.user_id, skillId]);
+    if (!result.affectedRows) return res.status(404).json({ success: false, message: "This skill is not in your profile." });
+    const readiness = await refreshAndPersistReadiness(req.user.user_id);
+    res.json({ success: true, readinessScore: readiness.readinessScore });
+  } catch (error) {
+    console.error("Skill removal error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to remove this skill." });
   }
 });
 

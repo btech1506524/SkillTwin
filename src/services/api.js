@@ -20,15 +20,6 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  const user = localStorage.getItem('skilltwin_user');
-  if (user) {
-    try {
-      const parsed = JSON.parse(user);
-      if (parsed.id) {
-        config.headers['x-student-id'] = parsed.id;
-      }
-    } catch {}
-  }
   return config;
 });
 
@@ -101,6 +92,51 @@ export const apiService = {
       return response.data;
     } catch (err) {
       return err.response ? { success: false, status: err.response.status } : null;
+    }
+  },
+
+  getOnboarding: async () => {
+    try {
+      const response = await apiClient.get('/student/onboarding');
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load profile setup.' };
+    }
+  },
+
+  getStudentSkills: async () => {
+    try {
+      const response = await apiClient.get('/student/skills');
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load your saved skills.' };
+    }
+  },
+
+  getSkillCatalog: async () => {
+    try {
+      const response = await apiClient.get('/student/skills/catalog');
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load the skill catalogue.' };
+    }
+  },
+
+  removeStudentSkill: async (skillId) => {
+    try {
+      const response = await apiClient.delete(`/student/skills/${skillId}`);
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to remove this skill.' };
+    }
+  },
+
+  saveOnboarding: async (profile, complete = true) => {
+    try {
+      const response = await apiClient.put('/student/onboarding', { ...profile, complete });
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to save profile setup.' };
     }
   },
 
