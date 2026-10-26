@@ -42,6 +42,7 @@ export default function Home() {
 
   const careerSelectProps = (roleName) => ({
     role: 'button',
+    'aria-label': `Choose ${roleName}`,
     tabIndex: 0,
     onClick: () => handleCareerSelect(roleName),
     onKeyDown: (event) => {

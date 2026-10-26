@@ -100,3 +100,35 @@ Versions are the stable versions returned by npm during this run. Lockfiles were
 ## Remaining risks and next steps
 
 Use `NEXT_AGENT_TASKS.md` for the exact disposable-DB, browser, staging, password-recovery, and Phase 15 follow-ups. Do not claim end-to-end readiness until those environment-dependent checks run with sanitized output.
+
+## 26 October 2026 — frontend redesign
+
+### Changed files
+
+- `src/design-system.css` — adds the shared production visual system: warm neutral canvas, paper surfaces, navy ink, teal action color, amber progress accent, reusable spacing/radius/shadow tokens, responsive layouts, visible focus, and reduced-motion rules.
+- `src/main.jsx` — loads the shared design system after existing styles so all current routes receive the redesign without changing API contracts.
+- `src/components/Navbar.jsx` — adds navigation landmark wiring and expanded/collapsed state semantics for the mobile menu.
+- `src/pages/Home.jsx` — adds accessible names to career-role selection controls while preserving role-query navigation.
+- `src/pages/Login.jsx`, `src/pages/Signup.jsx` — improves auth surface styling and adds explicit form-control labels/IDs for browser autofill and assistive technology.
+- `src/pages/Dashboard.jsx` — keeps all real API interactions intact and changes simulator scenario cards into semantic keyboard-accessible buttons.
+- `backend/admin-dashboard/dashboard.css` — visually aligns the protected admin console with the same restrained light workspace system while preserving its existing server-side authorization and data behavior.
+- `backend/admin-dashboard/index.html` — updates the admin theme color for the redesigned light surface.
+
+### Design/integration coverage
+
+- Redesigned shared navigation, home marketing/role-selection surface, auth pages, onboarding cards/stepper/forms, student dashboard metrics/tabs/roadmap/simulator/resume/assessment surfaces, and admin workspace styling.
+- Kept demo state, OAuth, API calls, dashboard tabs, admin access controls, loading/error/empty states, and real backend data flows unchanged.
+- Added mobile/tablet breakpoints and `prefers-reduced-motion` handling; removed particle/glow presentation from the active visual system.
+
+### Checks
+
+| Exact command/procedure | Result |
+|---|---|
+| `npm run build` | PASS — Vite production build after redesign |
+| `npm --prefix backend test` | PASS — 11 tests |
+| `npm --prefix backend run build` | PASS — backend syntax checks |
+| `git diff --check` | PASS |
+| Browser desktop/mobile screenshot inspection | BLOCKED — virtual display unavailable; Xvfb installation was interrupted |
+| Backend/MySQL/OAuth integration | Not rerun — redesign preserved existing contracts; prior blockers remain |
+
+No dependency or backend API/schema changes were made for the redesign.

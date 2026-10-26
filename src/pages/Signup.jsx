@@ -130,10 +130,11 @@ export default function Signup() {
 
             <form onSubmit={handleSubmit} className="auth-form">
               <div className="input-group">
-                <label>Full Name</label>
+                <label htmlFor="signup-name">Full Name</label>
                 <div className="input-wrapper">
                   <User size={18} className="input-icon" />
                   <input
+                    id="signup-name"
                     type="text"
                     name="name"
                     placeholder="e.g. Rahul Sharma"
@@ -145,10 +146,11 @@ export default function Signup() {
               </div>
 
               <div className="input-group">
-                <label>College Email Address</label>
+                <label htmlFor="signup-email">College Email Address</label>
                 <div className="input-wrapper">
                   <Mail size={18} className="input-icon" />
                   <input
+                    id="signup-email"
                     type="email"
                     name="email"
                     placeholder="student@college.edu"
@@ -160,10 +162,11 @@ export default function Signup() {
               </div>
 
               <div className="input-group">
-                <label>Create Password</label>
+                <label htmlFor="signup-password">Create Password</label>
                 <div className="input-wrapper">
                   <Lock size={18} className="input-icon" />
                   <input
+                    id="signup-password"
                     type={showPassword ? 'text' : 'password'}
                     name="password"
                     placeholder="At least 6 characters"

@@ -153,10 +153,11 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="auth-form">
               <div className="input-group">
-                <label>Email Address</label>
+                  <label htmlFor="login-email">Email Address</label>
                 <div className="input-wrapper">
                   <Mail size={18} className="input-icon" />
                   <input
+                    id="login-email"
                     type="email"
                     placeholder="student@university.edu"
                     value={email}
@@ -168,12 +169,13 @@ export default function Login() {
 
               <div className="input-group">
                 <div className="label-row">
-                  <label>Password</label>
+                  <label htmlFor="login-password">Password</label>
                   <span className="forgot-link" title="Self-service recovery is not configured">Password recovery unavailable</span>
                 </div>
                 <div className="input-wrapper">
                   <Lock size={18} className="input-icon" />
                   <input
+                    id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={password}

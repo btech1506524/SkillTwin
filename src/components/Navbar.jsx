@@ -28,7 +28,7 @@ export default function Navbar() {
           <span className="logo-ai">AI</span>
         </Link>
 
-        <div className={`nav-links ${menuOpen ? "active" : ""}`}>
+        <div id="primary-navigation" className={`nav-links ${menuOpen ? "active" : ""}`}>
           {isHome ? (
             <>
               <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
@@ -109,6 +109,8 @@ export default function Navbar() {
           className="menu-btn"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle navigation menu"
+          aria-expanded={menuOpen}
+          aria-controls="primary-navigation"
         >
           {menuOpen ? <X size={22}/> : <Menu size={22}/>}
         </button>

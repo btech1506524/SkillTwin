@@ -5,7 +5,7 @@
 
 ## Outcome
 
-The repository-wide improvement pass repaired the confirmed local defects: role selection through signup, demo persistence/coherence, OAuth-field exposure in admin browsing, CGPA precision, optional-skill simulator semantics, and the misleading password-recovery affordance. It added application auth limits, shared readiness/security helpers, repeatable backend contract tests, current dependency upgrades, and documentation aligned to migrations 001–010.
+The repository-wide improvement pass repaired the confirmed local defects: role selection through signup, demo persistence/coherence, OAuth-field exposure in admin browsing, CGPA precision, optional-skill simulator semantics, and the misleading password-recovery affordance. It added application auth limits, shared readiness/security helpers, repeatable backend contract tests, current dependency upgrades, documentation aligned to migrations 001–010, and a coherent responsive redesign for student and admin surfaces.
 
 ## Verification
 
@@ -14,7 +14,9 @@ The repository-wide improvement pass repaired the confirmed local defects: role 
 - **PASS:** `npm --prefix backend test` — 11 tests
 - **PASS:** `npm audit --omit=dev`
 - **PASS:** `npm --prefix backend audit --omit=dev`
+- **PASS:** `git diff --check`
 - **BLOCKED:** local browser/API bind and MySQL fresh/upgrade checks in the restricted sandbox
+- **BLOCKED:** desktop/mobile screenshot inspection because the virtual display was unavailable
 - **NOT RUN:** hosted deployment, ingress topology, OAuth provider, and staging checks
 
 ## Current open work

@@ -398,9 +398,11 @@ export default function Dashboard() {
 
         {/* INTERACTIVE WORKSPACE TABS */}
         <section className="dashboard-tabs-section">
-          <div className="tabs-navigation">
+          <div className="tabs-navigation" role="tablist" aria-label="Dashboard workspace">
             <button 
               className={`tab-btn ${activeTab === 'skills' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'skills'}
               onClick={() => setActiveTab('skills')}
             >
               <BarChart3 size={17} />
@@ -409,6 +411,8 @@ export default function Dashboard() {
 
             <button 
               className={`tab-btn ${activeTab === 'roadmap' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'roadmap'}
               onClick={() => setActiveTab('roadmap')}
             >
               <BookOpen size={17} />
@@ -417,6 +421,8 @@ export default function Dashboard() {
 
             <button
               className={`tab-btn ${activeTab === 'assessments' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'assessments'}
               onClick={() => setActiveTab('assessments')}
             >
               <ClipboardCheck size={17} />
@@ -425,6 +431,8 @@ export default function Dashboard() {
 
             <button 
               className={`tab-btn ${activeTab === 'simulator' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'simulator'}
               onClick={() => setActiveTab('simulator')}
             >
               <TrendingUp size={17} />
@@ -433,6 +441,8 @@ export default function Dashboard() {
 
             <button 
               className={`tab-btn ${activeTab === 'resume' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'resume'}
               onClick={() => setActiveTab('resume')}
             >
               <FileText size={17} />
@@ -499,7 +509,8 @@ export default function Dashboard() {
                             type="range" 
                             min="0"
                             max="100" 
-                            value={data.current} 
+                             value={data.current}
+                             aria-label={`Set ${name} proficiency`}
                             onChange={async (e) => {
                               const response = await updateSkill?.(name, Number(e.target.value));
                               setSkillUpdateError(response?.success ? '' : response?.message || 'Unable to save this skill.');
@@ -600,7 +611,7 @@ export default function Dashboard() {
                 </div>}
 
                 {readinessCalculated && <div className="simulator-scenarios-grid">
-                  <div 
+                  <button type="button"
                     className={`scenario-card ${simulatedSkills.includes('LeetCode 150') ? 'active-scenario' : ''}`}
                     onClick={() => handleSimulateScenario(9, 'LeetCode 150')}
                   >
@@ -613,9 +624,9 @@ export default function Dashboard() {
                     <div className="scenario-toggle-hint">
                       {simulatedSkills.includes('LeetCode 150') ? '✓ Scenario Applied' : '+ Click to Simulate'}
                     </div>
-                  </div>
+                  </button>
 
-                  <div 
+                  <button type="button"
                     className={`scenario-card ${simulatedSkills.includes('Docker CI/CD') ? 'active-scenario' : ''}`}
                     onClick={() => handleSimulateScenario(11, 'Docker CI/CD')}
                   >
@@ -628,9 +639,9 @@ export default function Dashboard() {
                     <div className="scenario-toggle-hint">
                       {simulatedSkills.includes('Docker CI/CD') ? '✓ Scenario Applied' : '+ Click to Simulate'}
                     </div>
-                  </div>
+                  </button>
 
-                  <div 
+                  <button type="button"
                     className={`scenario-card ${simulatedSkills.includes('DBMS Indexing') ? 'active-scenario' : ''}`}
                     onClick={() => handleSimulateScenario(7, 'DBMS Indexing')}
                   >
@@ -643,9 +654,9 @@ export default function Dashboard() {
                     <div className="scenario-toggle-hint">
                       {simulatedSkills.includes('DBMS Indexing') ? '✓ Scenario Applied' : '+ Click to Simulate'}
                     </div>
-                  </div>
+                  </button>
 
-                  <div 
+                  <button type="button"
                     className={`scenario-card ${simulatedSkills.includes('System Design Mini') ? 'active-scenario' : ''}`}
                     onClick={() => handleSimulateScenario(12, 'System Design Mini')}
                   >
@@ -658,7 +669,7 @@ export default function Dashboard() {
                     <div className="scenario-toggle-hint">
                       {simulatedSkills.includes('System Design Mini') ? '✓ Scenario Applied' : '+ Click to Simulate'}
                     </div>
-                  </div>
+                  </button>
                 </div>}
 
                 {simulationActive && (
