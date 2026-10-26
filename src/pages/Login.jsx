@@ -169,14 +169,7 @@ export default function Login() {
               <div className="input-group">
                 <div className="label-row">
                   <label>Password</label>
-                  {/* ERR-029 FIX: Replace alert popup with helpful inline notice */}
-                  <button type="button"
-                    style={{ fontSize: '12px', color: '#818cf8', cursor: 'pointer' }}
-                    onClick={() => setInfoMsg('Use demo account or reset password via administrator.')}
-                    className="forgot-link"
-                  >
-                    Forgot password?
-                  </button>
+                  <span className="forgot-link" title="Self-service recovery is not configured">Password recovery unavailable</span>
                 </div>
                 <div className="input-wrapper">
                   <Lock size={18} className="input-icon" />

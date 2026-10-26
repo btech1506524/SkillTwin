@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   semester TINYINT UNSIGNED NULL DEFAULT NULL,
   target_role VARCHAR(120) NULL DEFAULT NULL,
   onboarding_completed_at TIMESTAMP NULL DEFAULT NULL,
-  cgpa DECIMAL(3,2) NULL,
+  cgpa DECIMAL(4,2) NULL,
   readiness_score TINYINT UNSIGNED NOT NULL DEFAULT 0,
   graduation_year SMALLINT UNSIGNED NULL,
   account_role ENUM('student', 'admin') NOT NULL DEFAULT 'student',

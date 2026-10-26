@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import { apiService } from '../services/api';
 
 const AuthContext = createContext(null);
+const DEMO_STORAGE_KEY = 'skilltwin_demo_user';
 
 const DEMO_STUDENT = {
   demo: true,
@@ -28,6 +29,85 @@ const DEMO_STUDENT = {
   completedMilestones: ['milestone-1', 'milestone-2']
 };
 
+const DEMO_ROLE_PROFILES = {
+  'Software Developer': {
+    readinessScore: 68,
+    roadmap: [
+      ['Advanced DSA & Graph Theory', 'Master BFS/DFS, shortest paths (Dijkstra), and dynamic programming patterns.', ['Graphs', 'Recursion', 'DP']],
+      ['DBMS Deep Dive & Query Optimization', 'Transactions, ACID compliance, B+ Tree indexing, and normal forms.', ['SQL', 'Indexes', 'Transactions']],
+      ['Industry Capstone: Full Stack Microservice', 'Build a full stack project with JWT authentication and Docker deployment.', ['React', 'Node.js', 'Docker']],
+      ['Placement Mock Rounds & System Design', 'Practice architecture, caching, rate limiting, and technical interviews.', ['System Design', 'Mock Interview', 'CS Core']]
+    ]
+  },
+  'Frontend Developer': {
+    readinessScore: 66,
+    skills: {
+      HTML: { current: 82, required: 75, category: 'Frontend' }, CSS: { current: 70, required: 75, category: 'Frontend' },
+      JavaScript: { current: 64, required: 75, category: 'Frontend' }, 'React.js & Frontend': { current: 72, required: 75, category: 'Development' },
+      'Web Accessibility': { current: 45, required: 50, category: 'Quality' }, 'Frontend Testing': { current: 35, required: 50, category: 'Quality' }
+    },
+    roadmap: [['Accessible UI foundations', 'Build responsive, keyboard-friendly interfaces with semantic HTML.', ['HTML', 'CSS', 'Accessibility']], ['React testing workflow', 'Add component and browser tests for a small React feature.', ['React', 'Testing']]]
+  },
+  'Backend Developer': {
+    readinessScore: 61,
+    skills: {
+      'Node.js and Express.js': { current: 65, required: 50, category: 'Backend' }, 'REST APIs': { current: 60, required: 50, category: 'Backend' },
+      'Database Design': { current: 52, required: 50, category: 'Database' }, 'Authentication and Authorization': { current: 38, required: 50, category: 'Security' },
+      'API Testing': { current: 30, required: 25, category: 'Quality' }, 'Backend Security': { current: 25, required: 50, category: 'Security' }
+    },
+    roadmap: [['Secure API foundations', 'Design authenticated endpoints with validation and ownership checks.', ['REST APIs', 'Auth', 'Validation']], ['Database-backed service', 'Model and test a reliable service with migrations and transactions.', ['Database', 'Testing']]]
+  },
+  'Full Stack Developer': {
+    readinessScore: 64,
+    skills: {
+      HTML: { current: 78, required: 50, category: 'Frontend' }, JavaScript: { current: 62, required: 50, category: 'Frontend' },
+      'React.js & Frontend': { current: 58, required: 50, category: 'Development' }, 'Node.js and Express.js': { current: 54, required: 50, category: 'Backend' },
+      'REST APIs': { current: 48, required: 50, category: 'Backend' }, 'Database Design': { current: 42, required: 50, category: 'Database' },
+      'Cloud Platforms & Deployment': { current: 25, required: 25, category: 'DevOps' }
+    },
+    roadmap: [['End-to-end product slice', 'Ship a small feature from accessible UI through a tested API and database.', ['React', 'REST APIs', 'Database']], ['Production delivery', 'Containerize and deploy the app with health checks and secure configuration.', ['Docker', 'Cloud', 'Security']]]
+  },
+  'Data Analyst': {
+    readinessScore: 59,
+    skills: {
+      Python: { current: 60, required: 50, category: 'Analytics' }, 'Statistics & Data Analysis': { current: 48, required: 50, category: 'Analytics' },
+      'Data Cleaning': { current: 42, required: 50, category: 'Analytics' }, 'Data Visualization': { current: 55, required: 50, category: 'Analytics' },
+      'Excel and Spreadsheets': { current: 68, required: 25, category: 'Analytics' }, 'DBMS & SQL Queries': { current: 45, required: 50, category: 'Database' }
+    },
+    roadmap: [['Reliable analysis workflow', 'Clean, validate, and query a dataset before drawing conclusions.', ['Python', 'SQL', 'Data Cleaning']], ['Communicate findings', 'Build a clear dashboard and explain the evidence behind recommendations.', ['Visualization', 'Statistics']]]
+  },
+  'AI / ML Engineer': {
+    readinessScore: 56,
+    skills: {
+      Python: { current: 62, required: 50, category: 'AI / ML' }, 'Statistics & Data Analysis': { current: 44, required: 50, category: 'Analytics' },
+      'Machine Learning': { current: 38, required: 50, category: 'AI / ML' }, 'Data Preprocessing': { current: 40, required: 50, category: 'AI / ML' },
+      'Model Evaluation': { current: 32, required: 50, category: 'AI / ML' }, 'Linear Algebra Fundamentals': { current: 28, required: 25, category: 'Mathematics' }
+    },
+    roadmap: [['Modeling foundations', 'Practice preprocessing, baseline models, and evaluation on a documented dataset.', ['Python', 'Preprocessing', 'Evaluation']], ['Applied ML project', 'Build an end-to-end experiment and communicate limitations clearly.', ['ML', 'Statistics', 'Communication']]]
+  }
+};
+
+function cloneDemoValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function createDemoStudent(role = 'Software Developer') {
+  const selectedRole = DEMO_ROLE_PROFILES[role] ? role : 'Software Developer';
+  const profile = DEMO_ROLE_PROFILES[selectedRole];
+  const roadmap = profile.roadmap.map(([title, description, skills], index) => ({
+    id: `milestone-${index + 1}`,
+    week: `Weeks ${index * 2 + 1} - ${index * 2 + 2}`,
+    title,
+    description,
+    skills,
+    status: index < 2 ? 'in-progress' : 'pending'
+  }));
+  return {
+    ...cloneDemoValue(DEMO_STUDENT), targetRole: selectedRole, readinessScore: profile.readinessScore,
+    skills: cloneDemoValue(profile.skills || DEMO_STUDENT.skills), completedMilestones: ['milestone-1', 'milestone-2'], demoRoadmap: roadmap
+  };
+}
+
 const normalizeUser = (user) => ({
   ...user,
   id: user?.id ?? null,
@@ -48,13 +128,23 @@ const normalizeUser = (user) => ({
   completedMilestones: Array.isArray(user?.completedMilestones) ? user.completedMilestones : []
 });
 
+function readStoredDemo() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) || 'null');
+    if (!saved?.demo || typeof saved.targetRole !== 'string') return null;
+    return normalizeUser({ ...createDemoStudent(saved.targetRole), ...saved, skills: saved.skills });
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
   const skillUpdateTimers = useRef(new Map());
   const skillUpdateResolvers = useRef(new Map());
   const [user, setUser] = useState(() => {
     try {
       if (!localStorage.getItem('skilltwin_token')) {
-        return sessionStorage.getItem('skilltwin_demo_mode') === 'true' ? DEMO_STUDENT : null;
+        return sessionStorage.getItem('skilltwin_demo_mode') === 'true' ? (readStoredDemo() || createDemoStudent()) : null;
       }
       const saved = localStorage.getItem('skilltwin_user');
       return saved ? normalizeUser(JSON.parse(saved)) : null;
@@ -67,6 +157,7 @@ export function AuthProvider({ children }) {
   // ERR-020: Sync storage cleanly
   useEffect(() => {
     if (user?.demo) {
+      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(user));
       localStorage.removeItem('skilltwin_user');
       localStorage.removeItem('skilltwin_token');
       return;
@@ -150,7 +241,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('skilltwin_token');
     localStorage.removeItem('skilltwin_user');
     sessionStorage.setItem('skilltwin_demo_mode', 'true');
-    setUser(DEMO_STUDENT);
+    setUser(readStoredDemo() || createDemoStudent());
     return { success: true };
   };
 
@@ -178,9 +269,11 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    const wasDemo = user?.demo;
     setUser(null);
     localStorage.removeItem('skilltwin_user');
     localStorage.removeItem('skilltwin_token');
+    if (wasDemo) localStorage.removeItem(DEMO_STORAGE_KEY);
     sessionStorage.removeItem('skilltwin_demo_mode');
   };
 
@@ -212,7 +305,10 @@ export function AuthProvider({ children }) {
     if (!user) return;
     if (!localStorage.getItem('skilltwin_token')) {
       if (!user.demo) return { success: false, message: 'Sign in to save profile changes.' };
-      setUser(prev => ({ ...prev, targetRole: newRole }));
+      setUser(prev => {
+        const next = createDemoStudent(newRole);
+        return { ...next, completedMilestones: prev.completedMilestones || next.completedMilestones };
+      });
       return { success: true, demo: true };
     }
     try {

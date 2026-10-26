@@ -55,13 +55,16 @@ export default function Onboarding() {
         return;
       }
       const savedProfile = { ...emptyProfile, ...result.profile };
-      setProfile(savedProfile);
       setRoles(result.roles || []);
       const savedSelection = Object.fromEntries((result.savedSkills || [])
         .filter(skill => skill.proficiencyScore != null)
         .map(skill => [skill.skillId, { proficiencyScore: Number(skill.proficiencyScore), yearsExperience: Number(skill.yearsExperience || 0) }]));
       setSelected(savedSelection);
-      const role = (result.roles || []).find(item => item.name === savedProfile.targetRole);
+      const requestedRole = new URLSearchParams(location.search).get('targetRole')?.trim();
+      const role = (result.roles || []).find(item => item.name === savedProfile.targetRole)
+        || (result.roles || []).find(item => item.name === requestedRole);
+      const initialProfile = role ? { ...savedProfile, targetRole: role.name } : savedProfile;
+      setProfile(initialProfile);
       if (role) {
         setLoadingSkills(true);
         const catalog = await apiService.getRoleOnboardingSkills(role.id);

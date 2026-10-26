@@ -19,7 +19,7 @@ BEGIN
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = DATABASE() AND table_name = 'users' AND column_name = 'cgpa'
   ) THEN
-    ALTER TABLE users ADD COLUMN cgpa DECIMAL(3,2) NULL AFTER target_role;
+    ALTER TABLE users ADD COLUMN cgpa DECIMAL(4,2) NULL AFTER target_role;
   END IF;
 
   IF NOT EXISTS (

@@ -1,10 +1,10 @@
 const express = require("express");
 const db = require("../db");
 const authMiddleware = require("../middleware/authMiddleware");
+const { calculateReadiness, levelScores } = require("../lib/readiness");
 
 const router = express.Router();
 
-const levelScores = { Beginner: 25, Intermediate: 50, Advanced: 75, Expert: 100 };
 const importanceScores = { Low: 1, Medium: 2, High: 3, Critical: 4 };
 
 async function getCareerReadiness(userId) {
@@ -74,13 +74,12 @@ async function getCareerReadiness(userId) {
   });
 
   const totalRequired = skills.reduce((sum, skill) => sum + skill.required, 0);
-  const totalCurrent = skills.reduce((sum, skill) => sum + Math.min(skill.current, skill.required), 0);
   const missingCount = skills.filter(skill => skill.missing).length;
   const belowTargetCount = skills.filter(skill => !skill.missing && skill.current < skill.required).length;
 
   return {
     targetRole: { id: rows[0].role_id, name: rows[0].role_name },
-    readinessScore: hasProfiledSkills && totalRequired ? Math.round(totalCurrent / totalRequired * 100) : null,
+    readinessScore: hasProfiledSkills && totalRequired ? calculateReadiness(skills) : null,
     hasProfiledSkills,
     totalRequiredSkills: skills.length,
     missingCount,

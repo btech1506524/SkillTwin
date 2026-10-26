@@ -9,15 +9,20 @@
   "scripts": {
     "build": "node --check server.js && node --check admin-dashboard/dashboard.js && node --check db.js && node --check routes/auth.js && node --check routes/oauth.js && node --check routes/student.js && node --check routes/ai.js && node --check routes/assessments.js && node --check routes/roadmap.js && node --check routes/admin.js && node --check middleware/authMiddleware.js && node --check middleware/adminMiddleware.js",
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "test": "node --test"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^5.1.0",
-    "jose": "^6.2.12",
-    "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.14.4"
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "jose": "^6.2.13",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.24.6"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
   }
 }

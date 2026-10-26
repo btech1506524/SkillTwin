@@ -3,6 +3,7 @@ require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const express = require("express");
 const cors = require("cors");
+const { rateLimit } = require("express-rate-limit");
 const db = require("./db");
 
 const authRoutes = require("./routes/auth");
@@ -16,6 +17,16 @@ const adminRoutes = require("./routes/admin");
 const app = express();
 const PORT = Number(process.env.PORT || 5001);
 const isProduction = process.env.NODE_ENV === "production";
+
+function parseTrustProxyHops() {
+  const raw = process.env.TRUST_PROXY_HOPS;
+  if (raw == null || raw === "") return 0;
+  const hops = Number(raw);
+  if (!Number.isInteger(hops) || hops < 0 || hops > 10) {
+    throw new Error("TRUST_PROXY_HOPS must be an integer from 0 to 10.");
+  }
+  return hops;
+}
 
 function validateProductionConfig() {
   if (!isProduction) return;
@@ -47,6 +58,7 @@ function validateProductionConfig() {
 }
 
 validateProductionConfig();
+app.set("trust proxy", parseTrustProxyHops());
 app.disable("x-powered-by");
 app.use((req, res, next) => {
   res.set({
@@ -82,6 +94,25 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "64kb" }));
 
+const authRateLimitMessage = {
+  success: false,
+  message: "Too many authentication attempts. Please try again later."
+};
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: authRateLimitMessage
+});
+const registerRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: authRateLimitMessage
+});
+
 app.get("/api/health/live", (req, res) => res.json({ status: "online" }));
 app.get("/api/health/ready", async (req, res) => {
   try {
@@ -103,6 +134,8 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+app.use("/api/auth/login", loginRateLimiter);
+app.use("/api/auth/register", registerRateLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/auth/oauth", oauthRoutes);
 app.use("/api/student", studentRoutes);
@@ -135,28 +168,35 @@ app.use((error, req, res, next) => {
   res.status(500).json({ success: false, message: "Internal server error." });
 });
 
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`SkillTwin API listening on port ${PORT}`);
-}).on("error", error => {
-  console.error("Unable to bind API port:", error.code || error.name || "Error");
-  process.exit(1);
-});
-
-let shuttingDown = false;
-async function shutdown(signal) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  console.log(`${signal} received; shutting down gracefully.`);
-  const forceExit = setTimeout(() => process.exit(1), 10000);
-  forceExit.unref();
-  server.close(async error => {
-    try { await db.end(); } catch (dbError) { console.error("Database pool close failed:", dbError.code || dbError.name); }
-    if (error) {
-      console.error("HTTP server close failed:", error.code || error.name);
-      process.exitCode = 1;
-    }
-    clearTimeout(forceExit);
+function startServer() {
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`SkillTwin API listening on port ${PORT}`);
+  }).on("error", error => {
+    console.error("Unable to bind API port:", error.code || error.name || "Error");
+    process.exit(1);
   });
+
+  let shuttingDown = false;
+  async function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`${signal} received; shutting down gracefully.`);
+    const forceExit = setTimeout(() => process.exit(1), 10000);
+    forceExit.unref();
+    server.close(async error => {
+      try { await db.end(); } catch (dbError) { console.error("Database pool close failed:", dbError.code || dbError.name); }
+      if (error) {
+        console.error("HTTP server close failed:", error.code || error.name);
+        process.exitCode = 1;
+      }
+      clearTimeout(forceExit);
+    });
+  }
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
+  return server;
 }
-process.once("SIGTERM", () => shutdown("SIGTERM"));
-process.once("SIGINT", () => shutdown("SIGINT"));
+
+if (require.main === module) startServer();
+
+module.exports = { app, startServer };

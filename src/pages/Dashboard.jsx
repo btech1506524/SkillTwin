@@ -70,7 +70,7 @@ export default function Dashboard() {
       category: skill.category
     }]);
 
-  const fallbackRoadmapItems = [
+  const fallbackRoadmapItems = student.demoRoadmap || [
     {
       id: 'milestone-1',
       week: 'Weeks 1 - 2',

@@ -2,12 +2,12 @@ const express = require("express");
 const db = require("../db");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
+const { isHiddenAdminColumn } = require("../lib/security");
 
 const router = express.Router();
 router.use(authMiddleware, adminMiddleware);
 
 const tableNamePattern = /^[A-Za-z0-9_]+$/;
-const hiddenColumnPattern = /(password|secret|token|resume[_-]?text|private[_-]?key|api[_-]?key|credential|salt)/i;
 const quoteIdentifier = value => `\`${String(value).replace(/`/g, "``")}\``;
 const parsePositiveInt = (value, fallback, max) => {
   const parsed = Number(value);
@@ -308,7 +308,7 @@ router.get("/database/tables/:tableName", async (req, res) => {
        FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION`,
       [tableName]
     );
-    const visibleColumns = columns.filter(column => !hiddenColumnPattern.test(column.name));
+    const visibleColumns = columns.filter(column => !isHiddenAdminColumn(column.name));
     if (!visibleColumns.length) return res.json({ success: true, table: tableName, columns: [], rows: [], pagination: { page: 1, limit, total: 0 } });
     const safeTableName = quoteIdentifier(table.name);
     const visibleColumnList = visibleColumns.map(column => quoteIdentifier(column.name)).join(", ");

@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../db");
 const authMiddleware = require("../middleware/authMiddleware");
+const { calculateReadiness, scoreForLevel } = require("../lib/readiness");
 
 const router = express.Router();
 
@@ -110,53 +111,17 @@ router.post("/simulate", authMiddleware, async (req, res) => {
        LEFT JOIN user_skills us
          ON us.skill_id = s.skill_id
         AND us.user_id = ?
-       WHERE crs.role_id = ?`,
+        WHERE crs.role_id = ? AND crs.is_required = TRUE`,
       [
         req.user.user_id,
         normalizedRoleId
       ]
     );
 
-    let totalCurrent = 0;
-    let totalRequired = 0;
-
-    skills.forEach(skill => {
-
-      const current =
-        Number(skill.proficiency_score || 0);
-
-      let required = 50;
-
-      if (skill.required_level === "Beginner") {
-        required = 25;
-      }
-
-      if (skill.required_level === "Intermediate") {
-        required = 50;
-      }
-
-      if (skill.required_level === "Advanced") {
-        required = 75;
-      }
-
-      if (skill.required_level === "Expert") {
-        required = 100;
-      }
-
-      totalCurrent += Math.min(current, required);
-      totalRequired += required;
-
-    });
-
-    const readiness =
-      totalRequired > 0
-        ? Math.min(
-            100,
-            Math.round(
-              (totalCurrent / totalRequired) * 100
-            )
-          )
-        : 0;
+    const readiness = calculateReadiness(skills.map(skill => ({
+      current: Number(skill.proficiency_score || 0),
+      required: scoreForLevel(skill.required_level)
+    })));
 
     const gap =
       Math.max(0, 100 - readiness);

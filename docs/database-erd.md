@@ -1,6 +1,6 @@
 # SkillTwin database ER diagram
 
-This diagram reflects `backend/schema.sql` and migrations through `009_role_based_skill_catalog.sql`. It shows the live schema, not planned resume storage, chatbot history, or a separate progress-snapshot model.
+This diagram reflects `backend/schema.sql` and migrations through `010_cgpa_precision.sql`. It describes the current source schema; the actual deployed database still requires inspection in a disposable or authorized environment. It does not include planned resume storage, chatbot history, or a separate progress-snapshot model.
 
 ```mermaid
 erDiagram
@@ -111,6 +111,30 @@ erDiagram
     datetime created_at
   }
 
+  OAUTH_IDENTITIES {
+    bigint identity_id PK
+    int user_id FK
+    string provider
+    string provider_subject
+    string email
+    datetime created_at
+  }
+
+  OAUTH_LOGIN_ATTEMPTS {
+    string state_hash PK
+    string provider
+    string nonce
+    string code_verifier
+    int link_user_id FK
+    datetime expires_at
+  }
+
+  OAUTH_LOGIN_CODES {
+    string code_hash PK
+    int user_id FK
+    datetime expires_at
+  }
+
   USERS ||--o{ USER_SKILLS : records
   SKILLS ||--o{ USER_SKILLS : describes
   CAREER_ROLES ||--o{ CAREER_ROLE_SKILLS : requires
@@ -127,6 +151,9 @@ erDiagram
   ASSESSMENT_QUESTIONS ||--o{ ASSESSMENT_RESULT_ANSWERS : answered
   USERS o|--o{ ADMIN_AUDIT_LOG : acts
   USERS o|--o{ ADMIN_AUDIT_LOG : targeted
+  USERS ||--o{ OAUTH_IDENTITIES : connects
+  USERS o|--o{ OAUTH_LOGIN_ATTEMPTS : links
+  USERS ||--o{ OAUTH_LOGIN_CODES : exchanges
 ```
 
 ## Relationship notes
@@ -137,4 +164,6 @@ erDiagram
 - `roadmap_milestones` are the persisted progress items. `user_milestones` remains a separate legacy checklist table used by older client flows.
 - Assessment answer keys are stored in the database and excluded from the question-fetch response. Submitted answer records reference both the saved attempt and the source question.
 - Admin actor and target references become `NULL` if the related user is deleted, so the audit event itself can remain.
+- OAuth identity rows belong to one user; login attempts store short-lived state/nonce/PKCE material and optional linking ownership, while login codes store one-time exchange hashes. These challenge fields are intentionally excluded from admin table browsing.
+- Existing installations apply migrations 001–010 in order. Migration 010 changes `users.cgpa` to `DECIMAL(4,2)` so the documented 0–10 range includes `10.00`; `schema.sql` uses the same type for fresh installs.
 - Resume analysis currently accepts text for a request and does not persist resumes or analysis history. Chat conversations and separate progress snapshots are not current tables.

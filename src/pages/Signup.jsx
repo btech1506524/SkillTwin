@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles, Zap, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import OAuthButtons from '../components/OAuthButtons';
@@ -10,6 +10,8 @@ export default function Signup() {
   const [errorMsg, setErrorMsg] = useState('');
   const { signup, loginDemo } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetRole = searchParams.get('targetRole')?.trim() || '';
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -35,7 +37,10 @@ export default function Signup() {
 
       setLoading(false);
       if (res && res.success) {
-        navigate(res.onboardingComplete ? '/dashboard' : '/onboarding');
+        const onboardingPath = targetRole
+          ? `/onboarding?targetRole=${encodeURIComponent(targetRole)}`
+          : '/onboarding';
+        navigate(res.onboardingComplete ? '/dashboard' : onboardingPath);
       } else {
         setErrorMsg(res?.message || 'Failed to create student account.');
       }
@@ -102,7 +107,7 @@ export default function Signup() {
           <div className="auth-card">
             <div className="auth-card-header">
               <h2>Create Student Profile</h2>
-              <p>Configure your career twin parameters</p>
+              <p>{targetRole ? `Set up your profile for ${targetRole}` : 'Configure your career twin parameters'}</p>
             </div>
 
             {errorMsg && (

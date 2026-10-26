@@ -13,6 +13,8 @@ services:
         generateValue: true
       - key: CLIENT_ORIGIN
         sync: false
+      - key: TRUST_PROXY_HOPS
+        sync: false
       - key: OAUTH_FRONTEND_URL
         value: https://skill-twin-orpin.vercel.app
       - key: OAUTH_BACKEND_URL

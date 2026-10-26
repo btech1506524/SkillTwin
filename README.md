@@ -16,7 +16,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm --prefix backend install
    ```
 
-2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`), then select `skilltwin` and apply `backend/migrations/009_role_based_skill_catalog.sql`. For an existing database, select the target schema and apply unapplied migrations in order through `008_student_onboarding.sql`, then apply `009_role_based_skill_catalog.sql` (for example, `mysql -u root -p skilltwin < backend/migrations/009_role_based_skill_catalog.sql`). Migration files do not select a schema for you. Migration 009 adds required/optional role mapping and seeds the categorized role skill catalog without dropping student data. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
+2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). For an existing database, select the target schema and apply unapplied migrations in order through `010_cgpa_precision.sql` (for example, `mysql -u root -p skilltwin < backend/migrations/010_cgpa_precision.sql`). Migration files do not select a schema for you. Migration 009 adds the role-aware categorized skill catalog and migration 010 widens CGPA storage to include 10.00 without dropping student data. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
 
 3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET` (at least 32 characters for production).
 
@@ -31,7 +31,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
 
 ## Demo access
 
-Choose **Instant Demo Access** on Login or Signup, or use the home page demo action. Demo mode is local and works without an API or database. Changes made in demo mode are stored in that browser's local storage, not in MySQL. For persistent data, create an account and sign in while the API and database are available.
+Choose **Instant Demo Access** on Login or Signup, or use the home page demo action. Demo mode is local and works without an API or database. Changes made in demo mode are stored under a dedicated key in that browser's local storage, not in MySQL, and are cleared when you explicitly log out of demo mode. For persistent account data, create an account and sign in while the API and database are available.
 
 ## API overview
 
@@ -56,15 +56,17 @@ The backend serves the interactive admin dashboard at `https://<backend-host>/ad
 UPDATE users SET account_role = 'admin' WHERE email = 'admin@example.com';
 ```
 
-The API checks the current role in MySQL on each admin request. Admins can search and inspect profiles, export filtered user lists to CSV, view registration/readiness analytics and an audit trail of admin sign-ins and account-role changes, view skills, roadmap history, milestones and assessment attempts, change other accounts between student/admin, and browse paginated records in the configured SkillTwin database. Table browsing is read-only; password hashes and fields matching secret, token, API-key, credential, salt, private-key, and resume-text names are excluded. Arbitrary SQL and other MySQL schemas are not exposed. At least one admin account must remain; an admin cannot change their own role. Locally, open `http://localhost:5001/admin` or `http://localhost:5173/admin`.
+The API checks the current role in MySQL on each admin request. Admins can search and inspect profiles, export filtered user lists to CSV, view registration/readiness analytics and an audit trail of admin sign-ins and account-role changes, view skills, roadmap history, milestones and assessment attempts, change other accounts between student/admin, and browse paginated records in the configured SkillTwin database. Table browsing is read-only; password hashes, OAuth state/nonces/verifiers/hashes, and fields matching secret, token, API-key, credential, salt, private-key, and resume-text names are excluded. Arbitrary SQL and other MySQL schemas are not exposed. At least one admin account must remain; an admin cannot change their own role. Locally, open `http://localhost:5001/admin` or `http://localhost:5173/admin`.
 
 ## Separate frontend and backend
 
 Vercel hosts the Vite student frontend. Render hosts the Express API and its backend-served admin dashboard at `/admin`. The two apps deploy independently. The frontend's `/admin` route redirects to the configured Render admin URL.
 
+Password recovery is not currently configured. The login screen labels this honestly; students can use demo mode for evaluation or contact the account administrator. A future recovery flow requires verified email delivery, expiring one-time tokens, generic responses, and dedicated rate limits.
+
 ## Project progress
 
-The current implementation and local verification status for Phases 1–12 is tracked in [`docs/phases-1-12-status.md`](docs/phases-1-12-status.md). The database relationships are documented in [`docs/database-erd.md`](docs/database-erd.md). The status tracker distinguishes implementation evidence from production deployment, which remains a later phase.
+The implementation and historical local verification status for Phases 1–12 is tracked in [`docs/phases-1-12-status.md`](docs/phases-1-12-status.md); current audit evidence is in [`project-audit/PROJECT_STATUS_AND_HANDOVER.md`](project-audit/PROJECT_STATUS_AND_HANDOVER.md). The database relationships are documented in [`docs/database-erd.md`](docs/database-erd.md). These documents distinguish source evidence from production deployment, which remains unverified.
 
 ### Phase 10 — Assessments (implemented)
 
@@ -115,7 +117,7 @@ Phase 12 uses the Phase 11 `roadmap_milestones` table and adds no additional dat
 
 Add safe PDF/text resume import and let students save, compare, and remove their own prior analysis reports.
 
-## Project audit — 2026-10-13
+## Project audit — 2026-10-26
 
 The repository-wide review found and fixed these issues:
 
@@ -126,7 +128,9 @@ The repository-wide review found and fixed these issues:
 - Failed server-backed skill or milestone changes no longer leave fabricated optimistic values in the browser. Failed role changes no longer change the displayed target role.
 - Feature buttons now work, career selections carry through registration or update an existing profile, footer section links work from nested routes, and unknown client routes return to the home page. A Netlify `_redirects` rule supports direct SPA route loads there.
 - Removed unsupported claims about AI career chat, university curriculum alignment, student testimonials, and placement/recruitment benchmarks. Resume analysis is deterministic text-keyword matching; assessments and projections are rule-based.
-- Production configuration now rejects malformed client origins and invalid API ports.
+- Production configuration now rejects malformed client origins and invalid API ports. Login and registration have application-level 15-minute IP limits (10 and 5 requests respectively); keep an ingress limit for multi-instance deployments.
+- Home career selections are carried through signup into server-validated onboarding. Demo edits persist under a separate browser key and role-specific samples keep the displayed skills, readiness, and roadmap coherent.
+- Admin table browsing excludes OAuth state, nonce, verifier, and hash material. The legacy simulator uses required-skill readiness, and migration 010 makes the accepted CGPA maximum of 10.00 representable.
 
 The production database connection, migrations, account flow, and saved roadmap still require verification against a provisioned MySQL 8 service. This repository does not include a running database or deployment credentials, so that live integration check cannot be completed locally. Vercel SPA deep links are configured by the root `vercel.json`; the `public/_redirects` file is for Netlify deployments.
 
@@ -138,9 +142,9 @@ The root `npm run build` command builds the frontend for production.
 
 Deploy the React/Vite student frontend to Vercel and the Express API/admin dashboard to Render. The root `render.yaml` defines the Render backend only. The API serves `/api/*` plus its own `/admin` dashboard and does not serve the student frontend. The current Vercel config proxies `/api/*` to Render, and the admin route redirects to the Render dashboard. Set Render's `CLIENT_ORIGIN` to the exact HTTPS Vercel origin. `vercel.json` enables SPA deep links and applies baseline browser security headers.
 
-Set `NODE_ENV=production`, `PORT`, `JWT_SECRET` (at least 32 randomly generated characters), `CLIENT_ORIGIN` (comma-separated HTTPS origins, no wildcards), and the database connection values. Production startup rejects missing secrets/database settings, insecure client origins, and database TLS disabled. Set `DB_SSL=true`; `DB_SSL_CA` is resolved relative to `backend/` unless it is an absolute path. For the current Railway MySQL deployment, `render.yaml` uses the public TCP proxy, database `railway`, and the checked-in public CA certificate. Set `DB_USER` and `DB_PASS` in Render from the Railway MySQL service variables. Use a dedicated least-privilege database account and keep credentials in the deployment secret store, never in the repository.
+Set `NODE_ENV=production`, `PORT`, `TRUST_PROXY_HOPS`, `JWT_SECRET` (at least 32 randomly generated characters), `CLIENT_ORIGIN` (comma-separated HTTPS origins, no wildcards), and the database connection values. Production startup rejects missing secrets/database settings, insecure client origins, and database TLS disabled. Set `DB_SSL=true`; `DB_SSL_CA` is resolved relative to `backend/` unless it is an absolute path. For the current Railway MySQL deployment, `render.yaml` uses the public TCP proxy, database `railway`, and the checked-in public CA certificate. Set `DB_USER` and `DB_PASS` in Render from the Railway MySQL service variables. Use a dedicated least-privilege database account and keep credentials in the deployment secret store, never in the repository.
 
-Apply schema/migrations before deploying. Keep MySQL on a private network, enable encrypted database backups and restore procedures, and configure request rate limits for `/api/auth/login` and `/api/auth/register` at the trusted ingress or API gateway (especially when running multiple API instances). Terminate HTTPS at a trusted load balancer, set its security headers/HSTS policy, and expose `/api/health/live` for liveness plus `/api/health/ready` for database readiness. The API bounds JSON bodies to 64 KB and drains connections on SIGTERM/SIGINT.
+Apply schema/migrations before deploying. Keep MySQL on a private network where the platform supports it, enable encrypted database backups and restore procedures, and retain ingress-level request limits for `/api/auth/login` and `/api/auth/register` when running multiple API instances. The API also applies per-instance limits. Set `TRUST_PROXY_HOPS` only after confirming the Vercel/Render forwarding chain so `req.ip` cannot be spoofed. Terminate HTTPS at a trusted load balancer, set its security headers/HSTS policy, and expose `/api/health/live` for liveness plus `/api/health/ready` for database readiness. The API bounds JSON bodies to 64 KB and drains connections on SIGTERM/SIGINT.
 
 ### Vercel frontend
 
