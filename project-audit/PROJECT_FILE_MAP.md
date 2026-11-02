@@ -24,7 +24,8 @@ Express 5 API
 |---|---|---|
 | Frontend routes | `src/App.jsx`, `src/pages/*.jsx` | Guards account/onboarding routes; Signup passes a role hint to validated onboarding. |
 | Auth/demo state | `src/context/AuthContext.jsx` | JWT account storage, refresh, skill/roadmap updates, dedicated demo localStorage and coherent role samples. |
-| Dashboard | `src/pages/Dashboard.jsx`, `src/components/AssessmentsPanel.jsx`, `src/components/CareerPathsPanel.jsx` | Skills, role comparison/shortlist, roadmap, assessments, deterministic simulator, and resume import/history/compare. Demo roadmap comes from the selected demo profile. |
+| Dashboard | `src/pages/Dashboard.jsx`, `src/components/AssessmentsPanel.jsx`, `src/components/CareerPathsPanel.jsx` | Skills, role comparison/shortlist, skill-prioritized roadmap milestones, assessments, deterministic simulator, and resume import/history/compare. Demo roadmap comes from the selected demo profile. |
+| Public role learning | `src/pages/RoleRoadmaps.jsx`, `src/components/RoleRoadmapExplorer.jsx`, `src/data/roleRoadmaps.js` | Public, searchable skill-first paths for 14 roles with mastery stages and checkpoints; no account or fixed schedule required. |
 | Resume import | `src/services/resumeImport.js` | Browser-local UTF-8 text/PDF extraction and file/page/text limits. Original files are not uploaded. |
 | API client | `src/services/api.js` | Axios calls, bearer header, and authenticated career-path and resume-history methods. |
 | API process | `backend/server.js` | Express app, proxy-hop configuration, 10/5 auth limits, CORS, parser/errors, health, shutdown. Exports `app` for tests and starts only as the main module. |
@@ -36,7 +37,7 @@ Express 5 API
 
 ## Database and deployment
 
-`backend/schema.sql` defines the current 18-table source schema. Migrations 001–013 are forward upgrades; 007 adds OAuth tables, 008 onboarding state, 009 the categorized role catalog, 010 CGPA precision, 011 resume-analysis history, 012 saved career paths, and 013 expands roles and their skill requirements. The public `/roadmaps` page uses the in-app role curriculum and does not require API authentication. `docs/database-erd.md` is reconciled to this source. `vercel.json` hosts the frontend/rewrite; `render.yaml` hosts the API and points to Railway MySQL with TLS. Hosted topology and actual schema state remain unverified.
+`backend/schema.sql` defines the current 18-table source schema. Migrations 001–013 are forward upgrades; 007 adds OAuth tables, 008 onboarding state, 009 the categorized role catalog, 010 CGPA precision, 011 resume-analysis history, 012 saved career paths, and 013 expands roles and their skill requirements. The public `/roadmaps` page uses the in-app skill-first curriculum, supports role/skill search, and does not require API authentication. The dashboard roadmap also prioritizes profile skill gaps and shows progress status instead of week labels. `docs/database-erd.md` is reconciled to this source. `vercel.json` hosts the frontend/rewrite; `render.yaml` hosts the API and points to Railway MySQL with TLS. Hosted topology and actual schema state remain unverified.
 
 ## Safety boundaries
 

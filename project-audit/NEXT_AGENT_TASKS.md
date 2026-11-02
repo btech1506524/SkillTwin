@@ -14,7 +14,8 @@ Completed implementation tasks from the original list are recorded in `CHANGELOG
 
 2. **Permitted browser smoke test**
    - Start Vite/API where loopback binding is permitted.
-   - Exercise the public `/roadmaps` route without signing in, all 14 role selections and URL states, home-to-roadmaps navigation, signup/onboarding for all database roles, demo edits/reload/logout, resume `.txt` and PDF import limits, scanned PDF rejection, history compare/delete, career-path scoring and shortlist filters/save/remove, responsive keyboard navigation, theme toggle persistence, reduced-motion preference changes, hidden-tab animation pause/resume, background resize, and error/loading states.
+   - Exercise the public `/roadmaps` route without signing in, role/skill search, all 14 shareable role selections, skill checkpoints, and responsive card/stage layouts. Also inspect dashboard skill-first milestones for account and legacy demo data, milestone status actions, theme contrast in both modes, reduced-motion behavior, and loading/error states.
+   - Continue the existing auth/onboarding, demo, resume, career shortlist, keyboard navigation, theme persistence, reduced-motion preference, hidden-tab animation, resize, and error/loading checks listed in the prior audit.
 
 3. **Staging integration**
    - Confirm Vercel → Render forwarding and set `TRUST_PROXY_HOPS` from the actual proxy chain.
@@ -42,4 +43,5 @@ Completed implementation tasks from the original list are recorded in `CHANGELOG
 - Phase 16 makes the shared decorative particle animation respect reduced-motion preferences and stop while the page is hidden.
 - Phase 17 adds per-role readiness comparison and a private database-backed career shortlist.
 - Phase 20 adds a public 14-role roadmap library and the corresponding database role/skill migration.
+- Phase 21 removes fixed week labels from the role guides and dashboard roadmap; skill groups, mastery checkpoints, role/skill search, theme-aware styling, and reduced-motion-aware transitions are implemented in source.
 - Backend contract tests, frontend/backend builds, audits, and documentation updates are present.

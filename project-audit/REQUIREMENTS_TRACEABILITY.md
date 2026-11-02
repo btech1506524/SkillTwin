@@ -24,11 +24,12 @@ The official planning DOCX is unavailable. This matrix uses the current README, 
 | R-16 | Google/Microsoft OAuth and linking. | `backend/routes/oauth.js`, OAuth UI, migration 007; challenge material is now hidden from admin browsing. | **Blocked** by provider credentials/staging access. | Run provider success/cancel/expiry/conflict/code-reuse tests in staging. |
 | R-17 | Resume import/history. | Browser-local PDF/text extraction; deterministic results saved to owner-scoped `resume_analyses`; view, compare, delete, and 20-report cap. Source file and extracted text are not stored. | **Implemented in source; MySQL/browser flow pending.** | Apply migration 011 and verify import limits, ownership, retention, compare, and deletion in a disposable environment. |
 | R-18 | Compare career paths and keep a shortlist. | `CareerPathsPanel`, student career-path APIs, and `saved_career_roles` compare required-skill estimates and preserve owner-scoped saved roles; admin browsing hides shortlist rows. | **Implemented in source; MySQL/browser flow pending.** | Apply migration 012 and verify role scoring, duplicate prevention, owner isolation, removal, and cascades. |
-| R-19 | Publicly browse role roadmaps without an account. | Public `/roadmaps` route, catalogue cards, direct role selection via query string, and original on-site 12-week learning guides. | **Implemented in source; browser check pending.** | Verify direct deep links and all role selections in a permitted browser. |
+| R-19 | Publicly browse role roadmaps without an account. | Public `/roadmaps` route, searchable role/skill cards, direct role selection via query string, and original on-site mastery-stage guides. | **Implemented in source; browser check pending.** | Verify direct deep links, filtering, and role selection in a permitted browser. |
 | R-20 | Expand database-backed profile role catalogue with skill requirements. | `backend/schema.sql` and migration 013 add eight roles including Cybersecurity Engineer, with shared and specialized skills and required-skill mappings. | **Implemented in source; MySQL upgrade/fresh check pending.** | Verify migration 013 after migrations 001–012 and fresh schema yields the same 14 role names. |
+| R-21 | Emphasize skill mastery over calendar time in learning paths. | Four mastery stages per role show named skills and practical checkpoints; personalized dashboard milestones present the skill focus and status. | **Implemented in source; browser check pending.** | Verify responsive flow, search, role switching, and reduced-motion behavior in a permitted browser. |
 
 ## Current metrics
 
-- Current-scope denominator: R-01 through R-20 = 20.
-- Source implementation: R-01 through R-15 and R-17 through R-20 implemented with live-service gaps; R-16 OAuth remains externally blocked.
+- Current-scope denominator: R-01 through R-21 = 21.
+- Source implementation: R-01 through R-15 and R-17 through R-21 implemented with live-service gaps; R-16 OAuth remains externally blocked.
 - No feature is labeled end-to-end verified without a current runtime result.

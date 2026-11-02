@@ -2,30 +2,36 @@
 
 - **Updated:** 2 November 2026
 - **Repository:** `/home/sanjivani/Projects/SkillTwin`
-- **Starting state:** clean `main` at `b52c82a` after Phase 19; Phase 20 public roadmaps and the expanded role catalog are implemented in this update
-- **Scope:** source fixes, dependency modernization, schema/documentation reconciliation, frontend/admin visual redesign, Phases 15–20, and whole-project Graphify indexing; no deployment or production access.
+- **Starting state:** clean `main` at `07151ef` after Phase 20; Phase 21 makes the public and dashboard roadmaps skill-first
+- **Scope:** source fixes, dependency modernization, schema/documentation reconciliation, frontend/admin visual redesign, Phases 15–21, and whole-project Graphify indexing; no deployment or production access.
 
-## Latest phase — Phase 20
+## Latest phase — Phase 21
+
+The public roadmap library and personalized dashboard now emphasize skill groups, mastery checkpoints, and status instead of week schedules. The role catalog supports skill search, stage summaries, responsive cards, and reduced-motion-aware animations; dashboard milestone cards use the shared theme tokens. See [`PHASE-21-HANDOFF.md`](PHASE-21-HANDOFF.md) for implementation notes and verification limits.
+
+## Phase 20
 
 `/roadmaps` is a public route with a browseable catalogue of 14 original in-app role roadmaps and shareable role selections. Migration 013 expands the database profile role catalog and maps requirements for the added roles; the fresh schema contains the same catalog. See [`PHASE-20-HANDOFF.md`](PHASE-20-HANDOFF.md) for rollout and verification details.
 
-## Latest phase — Phase 19
+The current worktree contains an uncommitted follow-up that refines the public/in-app roadmap presentation and normalizes roadmap items to sequence-based labels. See [`CURRENT-HANDOFF.md`](CURRENT-HANDOFF.md) for exact changed files, checks, blockers, and the next browser verification step.
+
+## Phase 19
 
 The frontend now has a global light/dark theme toggle that persists the selection in browser storage. See [`PHASE-19-HANDOFF.md`](PHASE-19-HANDOFF.md) for implementation and verification details.
 
-## Latest phase — Phase 18
+## Phase 18
 
 The Learning Roadmap tab introduced original SkillTwin learning paths and role previews. Phase 20 expands the library to 14 roles and makes it public. See [`PHASE-18-HANDOFF.md`](PHASE-18-HANDOFF.md) for the initial implementation.
 
-## Latest phase — Phase 17
+## Phase 17
 
 Students can compare all configured career roles against their saved self-ratings and save/remove paths from a private shortlist. The dashboard displays required-skill fit, requirements met, and leading gaps without changing the current target role or profile. The account-owned `saved_career_roles` table is in migration 012 and is hidden from the admin table browser. See [`PHASE-17-HANDOFF.md`](PHASE-17-HANDOFF.md) for rollout and remaining verification.
 
-## Latest phase — Phase 16
+## Phase 16
 
 The shared decorative particle background now draws a still scene when the browser requests reduced motion, pauses its animation while the tab is hidden, and resumes when visible. The canvas is marked hidden from assistive technology. See [`PHASE-16-HANDOFF.md`](PHASE-16-HANDOFF.md) for behavior and verification status.
 
-## Latest phase — Phase 15
+## Phase 15
 
 Phase 15 is implemented in source. The dashboard reads `.txt` and text-based PDF files locally in the browser, submits extracted text for deterministic analysis, and saves only the report result and user-selected metadata. Files and extracted text are not persisted. Each user keeps at most 20 reports and can view, compare, and delete their own history. See [`PHASE-15-HANDOFF.md`](PHASE-15-HANDOFF.md) for limits, schema rollout, and remaining verification.
 
@@ -64,14 +70,14 @@ The frontend now uses a shared light workspace design system in `src/design-syst
 
 | Command | Result | Boundary |
 |---|---|---|
-| `npm run build` | PASS on 2 November 2026 | Frontend production bundle includes the public roadmap catalogue and role routes. |
+| `npm run build` | PASS on 2 November 2026 | Frontend bundle includes the skill-first roadmap and shared design changes. |
 | `npm --prefix backend run build` | PASS on 2 November 2026 | Backend JavaScript syntax checks. |
 | `npm --prefix backend test` | PASS on 26 October 2026; not rerun after Phase 17 | 11 native contract tests; no live DB. |
-| `git diff --check` | PASS on 2 November 2026 | Checked after the final documentation update. |
-| `PYTHONPATH=/home/sanjivani/.local/lib/python3.14/site-packages graphify update .` | PASS on 2 November 2026 | Graph refreshed to 510 nodes and 846 edges; migration 013 reported no extractable symbols and was checked separately. |
+| `git diff --check` | PASS on 2 November 2026 | Checked after the Phase 21 documentation update. |
+| `PYTHONPATH=/home/sanjivani/.local/lib/python3.14/site-packages graphify update .` | PASS on 2 November 2026 | Graph refreshed to 530 nodes and 872 edges. |
 | `npm audit --omit=dev` | PASS on 26 October 2026; not rerun after PDF.js addition | Root runtime dependency tree. |
 | `npm --prefix backend audit --omit=dev` | PASS on 26 October 2026 | Backend runtime dependency tree. |
-| Browser desktop/mobile inspection | NOT RUN after Phase 20 | Public route access, role URL switching, and responsive layout need a permitted browser check. |
+| Browser desktop/mobile inspection | BLOCKED in Phase 21 | Vite could not bind loopback (`listen EPERM`); visual smoke needs a permitted browser environment. |
 | Local API/browser startup | BLOCKED in prior audit | Sandbox loopback bind permission not available in audit evidence. |
 | MySQL fresh/upgrade and feature flows | PENDING | Apply migrations through 013 to a positively identified disposable database; verify the 14-role catalog and role-skill mappings alongside resume history and career shortlist ownership. |
 | OAuth/deployment/ingress staging | NOT RUN | Credentials and hosted access unavailable. |

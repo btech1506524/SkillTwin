@@ -1,6 +1,6 @@
-# SkillTwin project phase status (phases 1 to 20)
+# SkillTwin project phase status (phases 1 to 21)
 
-Phases 1–12 retain the historical review below. Phases 13–20 were reviewed against source on 2 November 2026. Database-backed checks from 14 October 2026 were not rerun during the Phase 15–17 implementations. “Complete” means implemented in source; it does not claim current live database or production verification.
+Phases 1–12 retain the historical review below. Phases 13–21 were reviewed against source on 2 November 2026. Database-backed checks from 14 October 2026 were not rerun during later implementations. “Complete” means implemented in source; it does not claim current live database or production verification.
 
 ## Agreed scope for this implementation
 
@@ -38,6 +38,7 @@ The primary acceptance journey is:
 | 18. In-app role roadmaps | Implemented in source; browser check pending | The Learning Roadmap tab introduced original, in-app 12-week tracks. Phase 20 expands these to 14 roles and adds a public catalogue; previewing a track does not change the user's target role or saved milestones. |
 | 19. Dark mode | Implemented in source; browser check pending | A shared navbar control switches and persists the light/dark theme across frontend routes. |
 | 20. Public role roadmap catalogue | Implemented in source; MySQL/browser verification pending | `/roadmaps` is public, lists 14 in-app role guides, supports shareable role selection, and requires no account. Migration 013 and the fresh schema expand the database profile/catalogue roles and required skill mappings to match. |
+| 21. Skill-first roadmap experience | Implemented in source; browser check pending | All 14 role guides now use mastery stages with role skills and practical checkpoints instead of week schedules. The dashboard emphasizes skill focus/status, and the catalogue adds skill search, responsive cards, and reduced-motion-aware transitions. |
 
 ## Historical local verification snapshot — 14 October 2026
 

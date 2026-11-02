@@ -13,12 +13,13 @@ This is a focused final inventory of the files inspected or changed in this run.
 | `src/pages/Signup.jsx` | Reads the role hint and carries it to onboarding; copy describes persistent demo state. |
 | `src/pages/Onboarding.jsx` | Validates the incoming role against the API role list before loading its skills; CGPA accepts 0–10. |
 | `src/pages/Login.jsx` | Password recovery affordance is explicitly unavailable until email delivery exists. |
-| `src/pages/Dashboard.jsx` | Uses stored coherent demo roadmaps; adds career paths, account-only resume import, saved reports, comparisons, and deletion. |
+| `src/pages/Dashboard.jsx` | Uses stored coherent demo roadmaps; shows skill-first personalized/demo milestones; adds career paths, account-only resume import, saved reports, comparisons, and deletion. |
+| `src/pages/RoleRoadmaps.jsx`, `src/components/RoleRoadmapExplorer.jsx`, `src/data/roleRoadmaps.js` | Public role/skill search and 14 role-specific mastery paths with skill groups and practical checkpoints. |
 | `src/components/CareerPathsPanel.jsx` | Career-path fit comparison, private shortlist controls, saved-path filter, and account sign-in state. |
 | `src/context/AuthContext.jsx` | Dedicated demo localStorage key, restore/clear behavior, role-specific sample profiles, and account/demo isolation. |
 | `src/services/api.js` | Authenticated API client for career paths and resume history; localStorage bearer-token architecture remains an open conditional risk. |
 | `src/services/resumeImport.js` | Browser-local PDF.js/UTF-8 text extraction with file, page, character, and request-size limits. |
-| `src/App.css`, `src/index.css`, shared components | Existing visual/accessibility implementation inspected as surrounding context; no broad redesign was introduced. |
+| `src/design-system.css`, `src/App.css`, `src/index.css` | Shared tokens now align public and dashboard roadmap cards; staged motion is disabled when reduced motion is requested. |
 
 ## Backend source
 
@@ -50,11 +51,12 @@ This is a focused final inventory of the files inspected or changed in this run.
 | `backend/migrations/012_saved_career_roles.sql` | Adds a unique account-owned career shortlist with account and role cascades. |
 | `backend/migrations/013_expanded_career_catalog.sql` | Adds eight roles and shared/specialized skill mappings to make the database catalog match the 14 public learning guides. |
 | `docs/database-erd.md` | Includes 18 source tables and migrations 001–013 with live-schema caveat. |
-| `docs/phases-1-12-status.md` | Historical 14 October checks are labeled; source status covers phases 1–20. |
+| `docs/phases-1-12-status.md` | Historical 14 October checks are labeled; source status covers phases 1–21. |
 | `README.md` | Setup through migration 013, public role roadmaps, demo persistence, admin filtering, career-path shortlist, rate limits/proxy topology, resume privacy, and deployment caveats. |
 | `backend/.env.example`, `render.yaml` | `TRUST_PROXY_HOPS` is explicit; deployment secrets remain external. |
 | `project-audit/PHASE-15-HANDOFF.md` | Phase 15 scope, privacy boundary, endpoints, schema rollout, and remaining integration checks. |
 | `project-audit/PHASE-17-HANDOFF.md` | Phase 17 endpoints, account ownership, rollout, retention, and verification boundary. |
+| `project-audit/PHASE-21-HANDOFF.md` | Skill-first role guides, dashboard milestone labels, visual updates, and verification boundary. |
 | `project-audit/*.md` | Current status, traceability, findings, task list, file map, summary, and dated changelog. |
 
 ## Dependency review

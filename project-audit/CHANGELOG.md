@@ -1,5 +1,21 @@
 # SkillTwin improvement run changelog
 
+## 2 November 2026 — Phase 21: skill-first roadmap experience
+
+### Implementation
+
+- `src/data/roleRoadmaps.js` — replaces week-based phases with four mastery stages, named skill groups, and practical checkpoints for all 14 roles.
+- `src/pages/RoleRoadmaps.jsx`, `src/components/RoleRoadmapExplorer.jsx` — adds role/skill search, clearer catalogue cards, skill counts, focused checkpoint content, and role-aware deep links.
+- `src/pages/Dashboard.jsx`, `src/context/AuthContext.jsx` — presents personalized and demo milestones by skill focus and status; old saved demo entries without a sequence are normalized when rendered.
+- `src/design-system.css`, `src/App.css` — aligns roadmap cards with the shared light/dark palette and adds restrained staggered entrance/hover motion with reduced-motion support.
+- README, phase tracker, traceability, status, and a Phase 21 handoff record the updated behavior and verification boundary.
+
+### Verification boundary
+
+- `npm run build` — PASS; all 14 roles have four populated stages; `git diff --check` — PASS; Graphify refreshed to 537 nodes and 878 edges.
+- Browser visual review remains blocked because Vite loopback binding returned `listen EPERM`.
+- Local Vite visual smoke could not start because loopback binding returned `listen EPERM`; no database or backend code was changed.
+
 ## 2 November 2026 — Phase 20: public role roadmap catalogue
 
 ### Implementation
@@ -13,6 +29,13 @@
 
 - Frontend build, Graphify update, and `git diff --check` results are recorded in the Phase 20 handoff.
 - MySQL fresh/upgrade checks and browser smoke checks remain pending; no database was modified.
+
+## 2 November 2026 — uncommitted roadmap refinement handoff
+
+- Current uncommitted work refines `src/pages/RoleRoadmaps.jsx`, `src/components/RoleRoadmapExplorer.jsx`, `src/data/roleRoadmaps.js`, `src/design-system.css`, `src/pages/Dashboard.jsx`, `src/context/AuthContext.jsx`, and removes obsolete roadmap styling from `src/App.css`.
+- The refinement normalizes guide content to four `stages`, adds search/empty states and richer role cards, improves mastery checkpoints and sequence labels, and preserves existing API/demo behavior.
+- `npm run build`, `npm --prefix backend run build`, `npm --prefix backend test`, both runtime audits, and `git diff --check` passed on this continuation.
+- Browser smoke, disposable MySQL, staging, and a new Graphify update remain pending; the Graphify command was unavailable in the current shell. See [`CURRENT-HANDOFF.md`](CURRENT-HANDOFF.md).
 
 ## 2 November 2026 — Phase 19: persistent dark mode
 

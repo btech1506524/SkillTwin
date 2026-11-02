@@ -111,10 +111,10 @@ export default function Dashboard() {
       category: skill.category
     }]);
 
-  const fallbackRoadmapItems = student.demoRoadmap || [
+  const fallbackRoadmapItems = (student.demoRoadmap || [
     {
       id: 'milestone-1',
-      week: 'Weeks 1 - 2',
+      sequence: 1,
       title: 'Advanced DSA & Graph Theory',
       description: 'Master BFS/DFS, shortest paths (Dijkstra), and dynamic programming patterns.',
       skills: ['Graphs', 'Recursion', 'DP'],
@@ -122,7 +122,7 @@ export default function Dashboard() {
     },
     {
       id: 'milestone-2',
-      week: 'Weeks 3 - 4',
+      sequence: 2,
       title: 'DBMS Deep Dive & Query Optimization',
       description: 'Transactions, ACID compliance, B+ Tree indexing, and normal forms (3NF & BCNF).',
       skills: ['SQL', 'Indexes', 'Transactions'],
@@ -130,7 +130,7 @@ export default function Dashboard() {
     },
     {
       id: 'milestone-3',
-      week: 'Weeks 5 - 6',
+      sequence: 3,
       title: 'Industry Capstone: Full Stack Microservice',
       description: 'Build a production-grade full stack project with JWT authentication and Docker deployment.',
       skills: ['React', 'Node.js', 'Docker'],
@@ -138,13 +138,13 @@ export default function Dashboard() {
     },
     {
       id: 'milestone-4',
-      week: 'Weeks 7 - 8',
+      sequence: 4,
       title: 'Placement Mock Rounds & System Design',
       description: 'High-level architecture, caching (Redis), rate limiters, and mock technical interviews.',
       skills: ['System Design', 'Mock Interview', 'CS Core'],
       status: student.completedMilestones?.includes('milestone-4') ? 'completed' : 'pending'
     }
-  ];
+  ]).map((item, index) => ({ ...item, sequence: item.sequence ?? index + 1 }));
 
   const syncRoadmap = async (regenerate = false) => {
     if (!localStorage.getItem('skilltwin_token') && student.demo) {
@@ -161,7 +161,7 @@ export default function Dashboard() {
     if (response?.success && response.roadmap) {
       const items = response.roadmap.milestones.map(item => ({
         id: item.id,
-        week: `Step ${item.sequence}`,
+        sequence: item.sequence,
         title: item.title,
         description: `${item.description} ${item.outcome}`,
         skills: [item.skillName],
@@ -684,8 +684,8 @@ export default function Dashboard() {
               <div className="tab-pane roadmap-pane">
                 <div className="pane-header">
                   <div>
-                    <h2>{localStorage.getItem('skilltwin_token') ? `${student.targetRole || 'Career'} Learning Roadmap` : 'Semester 5 Placement Milestone Plan'}</h2>
-                    <p>{localStorage.getItem('skilltwin_token') ? 'Ordered learning milestones generated from your role requirements and current skill gaps.' : 'Illustrative demo checklist for exploring the roadmap tools.'}</p>
+                    <h2>{localStorage.getItem('skilltwin_token') ? `${student.targetRole || 'Career'} Skill Roadmap` : 'Your skill-building milestones'}</h2>
+                    <p>{localStorage.getItem('skilltwin_token') ? 'Milestones are prioritized from the skills your role expects and the gaps in your profile.' : 'A sample, skill-first plan based on this demo profile.'}</p>
                   </div>
                   <div className="roadmap-progress-indicator">
                     <span>{roadmapProgress.percentage}% complete · {roadmapProgress.completed} completed · {roadmapProgress.inProgress} in progress · {roadmapProgress.planned} pending</span>
@@ -710,7 +710,7 @@ export default function Dashboard() {
                     const isDone = item.status === 'completed';
                     const isInProgress = item.status === 'in-progress';
                     return (
-                      <div key={item.id} className={`roadmap-step-card ${isDone ? 'completed-step' : ''} ${isInProgress ? 'in-progress-step' : ''}`}>
+                      <div key={item.id} className={`roadmap-step-card ${isDone ? 'completed-step' : ''} ${isInProgress ? 'in-progress-step' : ''}`} style={{ animationDelay: `${idx * 55}ms` }}>
                         <div className="step-timeline-node">
                           <button 
                             className={`node-check-btn ${isDone ? 'checked' : ''}`}
@@ -725,7 +725,10 @@ export default function Dashboard() {
                         </div>
 
                         <div className="step-content-card">
-                          <div className="step-time-badge">{item.week} · {isDone ? 'Completed' : isInProgress ? 'In progress' : 'Pending'}</div>
+                  <div className={`roadmap-step-kicker ${isDone ? 'completed' : ''}`}>
+                    <span>Skill focus {String(item.sequence).padStart(2, '0')}</span>
+                    <span>{isDone ? 'Completed' : isInProgress ? 'In progress' : 'Pending'}</span>
+                  </div>
                           <h3>{item.title}</h3>
                           <p>{item.description}</p>
                           {item.completedAt && <p className="roadmap-completed-date">Completed {new Date(item.completedAt).toLocaleDateString()}</p>}

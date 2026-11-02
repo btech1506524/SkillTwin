@@ -96,7 +96,7 @@ function createDemoStudent(role = 'Software Developer') {
   const profile = DEMO_ROLE_PROFILES[selectedRole];
   const roadmap = profile.roadmap.map(([title, description, skills], index) => ({
     id: `milestone-${index + 1}`,
-    week: `Weeks ${index * 2 + 1} - ${index * 2 + 2}`,
+    sequence: index + 1,
     title,
     description,
     skills,

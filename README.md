@@ -150,6 +150,12 @@ Phase 12 uses the Phase 11 `roadmap_milestones` table and adds no additional dat
 - The catalogue includes 14 original 12-week roadmaps. The database role picker and career comparisons also include the expanded role set.
 - Existing databases apply `013_expanded_career_catalog.sql`; fresh installs receive the same added roles and skill mappings from `backend/schema.sql`. The migration adds role and skill rows without adding tables.
 
+### Phase 21 — Skill-first roadmap experience (implemented in source)
+
+- Reworked the 14 role guides around four mastery stages: foundations, role skills, applied practice, and proof of mastery. Each stage lists concrete skills and a checkpoint; guides have no fixed week schedule.
+- The public library now supports role and skill search, clearer skill-count cards, shareable role selection, and a responsive stage layout. The dashboard roadmap emphasizes each milestone's skill focus and status instead of week labels.
+- Added restrained staged entrance and hover motion that respects reduced-motion preferences, and aligned dashboard roadmap cards and public calls to action with the light/dark design tokens.
+
 ## Project audit — 2026-10-26
 
 The repository-wide review found and fixed these issues:
