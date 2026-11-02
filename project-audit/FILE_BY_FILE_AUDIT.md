@@ -43,14 +43,15 @@ This is a focused final inventory of the files inspected or changed in this run.
 
 | File | Final role / evidence |
 |---|---|
-| `backend/schema.sql` | Fresh 18-table source schema includes OAuth, resume-analysis history, and saved career paths; CGPA uses `DECIMAL(4,2)`. |
+| `backend/schema.sql` | Fresh 18-table source schema includes OAuth, resume-analysis history, saved career paths, and the 14-role catalogue; CGPA uses `DECIMAL(4,2)`. |
 | `backend/migrations/001_student_readiness.sql` | Fresh/upgrade CGPA declaration aligned to `DECIMAL(4,2)`. |
 | `backend/migrations/010_cgpa_precision.sql` | Forward upgrade for existing `users.cgpa`; repeatable `ALTER TABLE ... MODIFY COLUMN`. |
 | `backend/migrations/011_resume_analysis_history.sql` | Adds user-owned JSON report rows; deletes cascade with account deletion. |
 | `backend/migrations/012_saved_career_roles.sql` | Adds a unique account-owned career shortlist with account and role cascades. |
-| `docs/database-erd.md` | Includes 18 source tables and migrations 001–012 with live-schema caveat. |
-| `docs/phases-1-12-status.md` | Historical 14 October checks are labeled; source status covers phases 1–17. |
-| `README.md` | Setup through migration 012, demo persistence, admin filtering, career-path shortlist, rate limits/proxy topology, resume privacy, and deployment caveats. |
+| `backend/migrations/013_expanded_career_catalog.sql` | Adds eight roles and shared/specialized skill mappings to make the database catalog match the 14 public learning guides. |
+| `docs/database-erd.md` | Includes 18 source tables and migrations 001–013 with live-schema caveat. |
+| `docs/phases-1-12-status.md` | Historical 14 October checks are labeled; source status covers phases 1–20. |
+| `README.md` | Setup through migration 013, public role roadmaps, demo persistence, admin filtering, career-path shortlist, rate limits/proxy topology, resume privacy, and deployment caveats. |
 | `backend/.env.example`, `render.yaml` | `TRUST_PROXY_HOPS` is explicit; deployment secrets remain external. |
 | `project-audit/PHASE-15-HANDOFF.md` | Phase 15 scope, privacy boundary, endpoints, schema rollout, and remaining integration checks. |
 | `project-audit/PHASE-17-HANDOFF.md` | Phase 17 endpoints, account ownership, rollout, retention, and verification boundary. |

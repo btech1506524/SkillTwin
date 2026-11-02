@@ -2,8 +2,12 @@
 
 - **Updated:** 2 November 2026
 - **Repository:** `/home/sanjivani/Projects/SkillTwin`
-- **Starting state:** clean `main` at `48aea94`, synchronized with `origin/main` before Phase 15 edits; current Phase 15–19 changes are uncommitted
-- **Scope:** source fixes, dependency modernization, schema/documentation reconciliation, frontend/admin visual redesign, Phases 15–19, and whole-project Graphify indexing; no deployment or production access.
+- **Starting state:** clean `main` at `b52c82a` after Phase 19; Phase 20 public roadmaps and the expanded role catalog are implemented in this update
+- **Scope:** source fixes, dependency modernization, schema/documentation reconciliation, frontend/admin visual redesign, Phases 15–20, and whole-project Graphify indexing; no deployment or production access.
+
+## Latest phase — Phase 20
+
+`/roadmaps` is a public route with a browseable catalogue of 14 original in-app role roadmaps and shareable role selections. Migration 013 expands the database profile role catalog and maps requirements for the added roles; the fresh schema contains the same catalog. See [`PHASE-20-HANDOFF.md`](PHASE-20-HANDOFF.md) for rollout and verification details.
 
 ## Latest phase — Phase 19
 
@@ -11,7 +15,7 @@ The frontend now has a global light/dark theme toggle that persists the selectio
 
 ## Latest phase — Phase 18
 
-The Learning Roadmap tab now includes original SkillTwin learning paths for all six configured roles. Students can preview another role without changing their current target role or saved personalized milestones. The role curriculum stays in the app and requires no backend or database change. See [`PHASE-18-HANDOFF.md`](PHASE-18-HANDOFF.md) for implementation details.
+The Learning Roadmap tab introduced original SkillTwin learning paths and role previews. Phase 20 expands the library to 14 roles and makes it public. See [`PHASE-18-HANDOFF.md`](PHASE-18-HANDOFF.md) for the initial implementation.
 
 ## Latest phase — Phase 17
 
@@ -25,7 +29,7 @@ The shared decorative particle background now draws a still scene when the brows
 
 Phase 15 is implemented in source. The dashboard reads `.txt` and text-based PDF files locally in the browser, submits extracted text for deterministic analysis, and saves only the report result and user-selected metadata. Files and extracted text are not persisted. Each user keeps at most 20 reports and can view, compare, and delete their own history. See [`PHASE-15-HANDOFF.md`](PHASE-15-HANDOFF.md) for limits, schema rollout, and remaining verification.
 
-The current source schema has 18 tables. Existing installations apply migrations 001–012 in order; fresh installs use `backend/schema.sql`.
+The current source schema has 18 tables. Existing installations apply migrations 001–013 in order; fresh installs use `backend/schema.sql`.
 
 ## Outcome
 
@@ -38,7 +42,7 @@ The frontend now uses a shared light workspace design system in `src/design-syst
 ## Architecture and source state
 
 - React 19/Vite 8 frontend in `src/`; Express 5/MySQL API in `backend/`.
-- `backend/schema.sql` contains the current 18-table source shape, including OAuth, resume-analysis history, and saved career paths. Existing installations apply migrations 001–012 in order; no migration runner or `schema_migrations` table exists.
+- `backend/schema.sql` contains the current 18-table source shape, including OAuth, resume-analysis history, saved career paths, and the expanded 14-role catalog. Existing installations apply migrations 001–013 in order; no migration runner or `schema_migrations` table exists.
 - Readiness is deterministic and required-skill-only; current scores are capped at each target before the ratio is calculated.
 - Resume analysis remains deterministic keyword evidence. Imported files are read in the browser; extracted text is request-only and not stored. Analysis results are stored privately per user under Phase 15.
 - Admin access is JWT plus a live database role check. Table browsing is read-only and denylisted by column name.
@@ -60,16 +64,16 @@ The frontend now uses a shared light workspace design system in `src/design-syst
 
 | Command | Result | Boundary |
 |---|---|---|
-| `npm run build` | PASS on 2 November 2026 | Frontend production bundle including in-app role roadmaps and the theme toggle. |
+| `npm run build` | PASS on 2 November 2026 | Frontend production bundle includes the public roadmap catalogue and role routes. |
 | `npm --prefix backend run build` | PASS on 2 November 2026 | Backend JavaScript syntax checks. |
 | `npm --prefix backend test` | PASS on 26 October 2026; not rerun after Phase 17 | 11 native contract tests; no live DB. |
-| `git diff --check` | PASS on 2 November 2026 | Clean after Phase 19 changes. |
-| `PYTHONPATH=/home/sanjivani/.local/lib/python3.14/site-packages graphify update .` | PASS on 2 November 2026 | SQL-aware graph contains 496 nodes and 815 edges. |
+| `git diff --check` | PASS on 2 November 2026 | Checked after the final documentation update. |
+| `PYTHONPATH=/home/sanjivani/.local/lib/python3.14/site-packages graphify update .` | PASS on 2 November 2026 | Graph refreshed to 510 nodes and 846 edges; migration 013 reported no extractable symbols and was checked separately. |
 | `npm audit --omit=dev` | PASS on 26 October 2026; not rerun after PDF.js addition | Root runtime dependency tree. |
 | `npm --prefix backend audit --omit=dev` | PASS on 26 October 2026 | Backend runtime dependency tree. |
-| Browser desktop/mobile inspection | NOT RUN after Phase 19 | Role switching, theme persistence, and responsive theme surfaces need a permitted browser check. |
+| Browser desktop/mobile inspection | NOT RUN after Phase 20 | Public route access, role URL switching, and responsive layout need a permitted browser check. |
 | Local API/browser startup | BLOCKED in prior audit | Sandbox loopback bind permission not available in audit evidence. |
-| MySQL fresh/upgrade and feature flows | PENDING | Apply migrations through 012 to a positively identified disposable database; verify resume history and career shortlist ownership, uniqueness, and cascades. |
+| MySQL fresh/upgrade and feature flows | PENDING | Apply migrations through 013 to a positively identified disposable database; verify the 14-role catalog and role-skill mappings alongside resume history and career shortlist ownership. |
 | OAuth/deployment/ingress staging | NOT RUN | Credentials and hosted access unavailable. |
 
 ## Remaining risk

@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "src/App.jsx": {
-    "mtime": 1793619454.110767,
-    "seen": 1793619608.6249084,
-    "ast_hash": "1cbb225ae0a3264425ea2d83859c0c89",
+    "mtime": 1793620158.164539,
+    "seen": 1793620576.278884,
+    "ast_hash": "89ed4417ebdf88fab836ac7f676b192e",
     "semantic_hash": ""
   },
   "src/components/AnimatedSection.jsx": {
@@ -156,9 +156,9 @@
     "semantic_hash": ""
   },
   "src/components/Navbar.jsx": {
-    "mtime": 1793619454.1807683,
-    "seen": 1793619608.6249266,
-    "ast_hash": "181242bf7dd06915cacb6c22eb7c4d2a",
+    "mtime": 1793620158.2375379,
+    "seen": 1793620576.2789059,
+    "ast_hash": "2ce182f27db467684668fbd9a71a34dc",
     "semantic_hash": ""
   },
   "src/components/OAuthButtons.jsx": {
@@ -204,9 +204,9 @@
     "semantic_hash": ""
   },
   "src/pages/Home.jsx": {
-    "mtime": 1793037800.4597301,
-    "seen": 1793610960.6818383,
-    "ast_hash": "b4e6aa2cc00781a9309f9e4fedeb0545",
+    "mtime": 1793620158.3095367,
+    "seen": 1793620576.2789428,
+    "ast_hash": "60091394109a43f24a77a2aa144293e3",
     "semantic_hash": ""
   },
   "src/pages/Login.jsx": {
@@ -264,9 +264,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793619525.5126088,
-    "seen": 1793619608.6249797,
-    "ast_hash": "ea737f256963b038b87bf449543e1b82",
+    "mtime": 1793620287.2706485,
+    "seen": 1793620576.278978,
+    "ast_hash": "7aa37a61669c1df11442d1823d350c3c",
     "semantic_hash": ""
   },
   "backend/admin-dashboard/index.html": {
@@ -276,15 +276,15 @@
     "semantic_hash": ""
   },
   "docs/database-erd.md": {
-    "mtime": 1793618305.1123216,
-    "seen": 1793618407.246979,
-    "ast_hash": "2f50cf5de4d32522a5ba8db431716acc",
+    "mtime": 1793620310.9443276,
+    "seen": 1793620576.2789838,
+    "ast_hash": "3976b00dfb2bafd8ebd8f2202450f861",
     "semantic_hash": ""
   },
   "docs/phases-1-12-status.md": {
-    "mtime": 1793619525.5836115,
-    "seen": 1793619608.6249864,
-    "ast_hash": "f70a4ab1086702690ad78e245c203e1c",
+    "mtime": 1793620547.5980046,
+    "seen": 1793620576.2789867,
+    "ast_hash": "ea3204b18e2a2f28f4d872ee24807b4f",
     "semantic_hash": ""
   },
   "index.html": {
@@ -294,63 +294,63 @@
     "semantic_hash": ""
   },
   "project-audit/AUDIT_SUMMARY.md": {
-    "mtime": 1793619638.691298,
-    "seen": 1793619665.7903714,
-    "ast_hash": "26f8b6c6de92a5116ba893c41218e82c",
+    "mtime": 1793620322.1981752,
+    "seen": 1793620576.2789927,
+    "ast_hash": "4bcf77064746ff68e5169f1871930a78",
     "semantic_hash": ""
   },
   "project-audit/BUGS_AND_BLOCKERS.md": {
-    "mtime": 1793618435.238334,
-    "seen": 1793618869.4931438,
-    "ast_hash": "9e4cb6e346fe0d1f730a8e088d4dc31e",
+    "mtime": 1793620547.8760026,
+    "seen": 1793620576.2789958,
+    "ast_hash": "33b496919ad615c2a67d401bf9da8fda",
     "semantic_hash": ""
   },
   "project-audit/CHANGELOG.md": {
-    "mtime": 1793619638.9012966,
-    "seen": 1793619665.7903771,
-    "ast_hash": "513dbe6ee10b9ed5f48d5962a35f3376",
+    "mtime": 1793620322.1251762,
+    "seen": 1793620576.2790086,
+    "ast_hash": "60ed88c8696f28898aaf55064a4a551c",
     "semantic_hash": ""
   },
   "project-audit/FILE_BY_FILE_AUDIT.md": {
-    "mtime": 1793618498.0591974,
-    "seen": 1793618869.493151,
-    "ast_hash": "7abad23e0b4b8ae3581b3cf54357fd0a",
+    "mtime": 1793620620.690406,
+    "seen": 1793620648.5128462,
+    "ast_hash": "7b141f35ce81831ec00e9d760eecfcc7",
     "semantic_hash": ""
   },
   "project-audit/NEXT_AGENT_TASKS.md": {
-    "mtime": 1793618369.656334,
-    "seen": 1793618407.2470007,
-    "ast_hash": "3aaf43570977ebf0f5ff125bcfc191ad",
+    "mtime": 1793620311.0863256,
+    "seen": 1793620576.2790148,
+    "ast_hash": "0cbe171f18dc2f687bcd382c74bd0d37",
     "semantic_hash": ""
   },
   "project-audit/PHASE-15-HANDOFF.md": {
-    "mtime": 1793609625.768407,
-    "seen": 1793610960.6818688,
-    "ast_hash": "69396a62489b395c02bc29d5e3404413",
+    "mtime": 1793619688.7883375,
+    "seen": 1793620576.2790182,
+    "ast_hash": "6074aa5bda0d39eb5d544805bbf7fb2d",
     "semantic_hash": ""
   },
   "project-audit/PROJECT_FILE_MAP.md": {
-    "mtime": 1793618498.1381958,
-    "seen": 1793618869.4931707,
-    "ast_hash": "c6be1052a8125965cf66cdd88fbdea3e",
+    "mtime": 1793620311.0173266,
+    "seen": 1793620576.279036,
+    "ast_hash": "9fa9092a6d2444b1fa4eb28eb388b4cd",
     "semantic_hash": ""
   },
   "project-audit/PROJECT_STATUS_AND_HANDOVER.md": {
-    "mtime": 1793619638.6202984,
-    "seen": 1793619665.7903988,
-    "ast_hash": "f783b7c86157484ca7589dc2b99922b6",
+    "mtime": 1793620655.4450157,
+    "seen": 1793620668.378127,
+    "ast_hash": "104abbb27a7534726729b3d84aa9d454",
     "semantic_hash": ""
   },
   "project-audit/REQUIREMENTS_TRACEABILITY.md": {
-    "mtime": 1793618381.3341558,
-    "seen": 1793618407.2470195,
-    "ast_hash": "598212ddedd5bdc8c3bd65da25ccc904",
+    "mtime": 1793620311.1503248,
+    "seen": 1793620576.2790425,
+    "ast_hash": "26f171728cd2cf410c5490fa2ea0e68f",
     "semantic_hash": ""
   },
   "project-audit/PHASE-16-HANDOFF.md": {
-    "mtime": 1793617622.1831474,
-    "seen": 1793618000.182595,
-    "ast_hash": "e1689d0ccd4c648b2e72f6743ab93171",
+    "mtime": 1793619688.7889407,
+    "seen": 1793620576.2790208,
+    "ast_hash": "a1054a467e6555429ffb7ac81769214d",
     "semantic_hash": ""
   },
   "backend/migrations/001_student_readiness.sql": {
@@ -420,9 +420,9 @@
     "semantic_hash": ""
   },
   "backend/schema.sql": {
-    "mtime": 1793618220.6553285,
-    "seen": 1793618407.2468817,
-    "ast_hash": "99fe7baae5e2c9c0f8fffd59a1425a90",
+    "mtime": 1793620523.9784698,
+    "seen": 1793620576.2788634,
+    "ast_hash": "d5d89ff3c4f32f5d24661162fe3469ce",
     "semantic_hash": ""
   },
   "backend/migrations/012_saved_career_roles.sql": {
@@ -438,21 +438,21 @@
     "semantic_hash": ""
   },
   "project-audit/PHASE-17-HANDOFF.md": {
-    "mtime": 1793618434.9533381,
-    "seen": 1793618869.4931633,
-    "ast_hash": "24c599c141e5aad6b89f511bb2b461f2",
+    "mtime": 1793619688.7896397,
+    "seen": 1793620576.2790236,
+    "ast_hash": "c5aebee63c038a6fd8afd7014355b329",
     "semantic_hash": ""
   },
   "project-audit/PHASE-18-HANDOFF.md": {
-    "mtime": 1793619638.7662973,
-    "seen": 1793619665.7903914,
-    "ast_hash": "474b8593e8aa4538773db5d21e0355ff",
+    "mtime": 1793619688.7901635,
+    "seen": 1793620576.2790267,
+    "ast_hash": "99f6233321f423a3b853c106f2571149",
     "semantic_hash": ""
   },
   "src/components/RoleRoadmapExplorer.jsx": {
-    "mtime": 1793619434.5844667,
-    "seen": 1793619608.6249344,
-    "ast_hash": "efee4af2b38c51f4915f275201ba70b8",
+    "mtime": 1793620608.8245392,
+    "seen": 1793620648.5127654,
+    "ast_hash": "cbc7cc0cd1d6a49999a873bfb85ebfee",
     "semantic_hash": ""
   },
   "src/context/ThemeContext.jsx": {
@@ -462,15 +462,33 @@
     "semantic_hash": ""
   },
   "src/data/roleRoadmaps.js": {
-    "mtime": 1793619434.4984686,
-    "seen": 1793619608.624945,
-    "ast_hash": "90b5f0da9b16d1e53b566c5ce2dc43c8",
+    "mtime": 1793620472.1895325,
+    "seen": 1793620576.27893,
+    "ast_hash": "32bf03c9d32367bfbb847a22d9fc32ea",
     "semantic_hash": ""
   },
   "project-audit/PHASE-19-HANDOFF.md": {
-    "mtime": 1793619638.833297,
-    "seen": 1793619665.7903936,
-    "ast_hash": "5149965d590d1b478f4ab116430c38dd",
+    "mtime": 1793619688.7906046,
+    "seen": 1793620576.2790296,
+    "ast_hash": "cd189a94d7c1c9849bc6383b649312a0",
+    "semantic_hash": ""
+  },
+  "backend/migrations/013_expanded_career_catalog.sql": {
+    "mtime": 1793620514.0382395,
+    "seen": 1793620576.2788303,
+    "ast_hash": "f8a157881b5d683ecebd72135ae066c6",
+    "semantic_hash": ""
+  },
+  "src/pages/RoleRoadmaps.jsx": {
+    "mtime": 1793620439.1526344,
+    "seen": 1793620576.2789562,
+    "ast_hash": "d31b51488b066a232494ee3ea134d04c",
+    "semantic_hash": ""
+  },
+  "project-audit/PHASE-20-HANDOFF.md": {
+    "mtime": 1793620655.3230171,
+    "seen": 1793620668.3781164,
+    "ast_hash": "737fcfcdd14264619b5f17624e792c81",
     "semantic_hash": ""
   },
   "backend/package-lock.json": {

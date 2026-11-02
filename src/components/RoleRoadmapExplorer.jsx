@@ -1,11 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRight, Route } from 'lucide-react';
 import { ROLE_ROADMAPS } from '../data/roleRoadmaps';
 
-export default function RoleRoadmapExplorer({ targetRole }) {
-  const [selectedRole, setSelectedRole] = useState(() =>
+export default function RoleRoadmapExplorer({ targetRole, selectedRole: selectedRoleProp, onRoleChange }) {
+  const [internalRole, setInternalRole] = useState(() =>
     ROLE_ROADMAPS.find(roadmap => roadmap.role === targetRole)?.role || ROLE_ROADMAPS[0].role
   );
+  useEffect(() => {
+    if (!selectedRoleProp) {
+      setInternalRole(ROLE_ROADMAPS.find(roadmap => roadmap.role === targetRole)?.role || ROLE_ROADMAPS[0].role);
+    }
+  }, [selectedRoleProp, targetRole]);
+  const selectedRole = selectedRoleProp || internalRole;
+  const changeRole = role => {
+    if (onRoleChange) onRoleChange(role);
+    else setInternalRole(role);
+  };
   const roadmap = ROLE_ROADMAPS.find(item => item.role === selectedRole) || ROLE_ROADMAPS[0];
 
   return (
@@ -20,7 +30,7 @@ export default function RoleRoadmapExplorer({ targetRole }) {
         </div>
         <div className="role-roadmap-select-wrap">
           <label htmlFor="role-roadmap-select">Choose a role</label>
-          <select id="role-roadmap-select" value={selectedRole} onChange={event => setSelectedRole(event.target.value)}>
+          <select id="role-roadmap-select" value={selectedRole} onChange={event => changeRole(event.target.value)}>
             {ROLE_ROADMAPS.map(item => <option key={item.role} value={item.role}>{item.role}</option>)}
           </select>
         </div>

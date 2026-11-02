@@ -7,6 +7,7 @@ import AnimatedSection from "../components/AnimatedSection";
 import ParticleBackground from "../components/ParticleBackground";
 import CountUp from "../components/CountUp";
 import { useAuth } from "../context/AuthContext";
+import { ROLE_ROADMAPS } from "../data/roleRoadmaps";
 
 export default function Home() {
   const { user, loginDemo, updateTargetRole } = useAuth();
@@ -76,12 +77,13 @@ export default function Home() {
                 {user ? 'Open My Dashboard' : 'Build My Career Twin'} <ArrowRight size={18} />
               </button>
               <a href="#careers" className="secondary-btn">Explore Careers</a>
+              <Link to="/roadmaps" className="secondary-btn">Explore role roadmaps</Link>
             </div>
           </AnimatedSection>
           <AnimatedSection delay={400}>
             <div className="hero-stats">
               <div><strong><CountUp end={50} suffix="+" /></strong><span>Skills Tracked</span></div>
-              <div><strong><CountUp end={6} suffix="+" /></strong><span>Career Paths</span></div>
+              <div><strong><CountUp end={ROLE_ROADMAPS.length} /></strong><span>Role Roadmaps</span></div>
               <div><strong>Role</strong><span>Focused</span></div>
             </div>
           </AnimatedSection>

@@ -36,6 +36,7 @@ export default function Navbar() {
               <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
               <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How It Works</a>
               <a href="#careers" onClick={() => setMenuOpen(false)}>Career Paths</a>
+              <Link to="/roadmaps" onClick={() => setMenuOpen(false)}>Roadmaps</Link>
               <a href="#about" onClick={() => setMenuOpen(false)}>About</a>
             </>
           ) : (
@@ -43,6 +44,7 @@ export default function Navbar() {
               <Link to="/#features" onClick={() => setMenuOpen(false)}>Features</Link>
               <Link to="/#how-it-works" onClick={() => setMenuOpen(false)}>How It Works</Link>
               <Link to="/#careers" onClick={() => setMenuOpen(false)}>Career Paths</Link>
+              <Link to="/roadmaps" onClick={() => setMenuOpen(false)}>Roadmaps</Link>
               <Link to="/" onClick={() => setMenuOpen(false)}>Home</Link>
             </>
           )}

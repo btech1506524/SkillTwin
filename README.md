@@ -1,6 +1,6 @@
 # SkillTwin AI
 
-SkillTwin is a career-readiness dashboard for engineering students. It includes a React/Vite client and an Express API backed by MySQL. The dashboard tracks skills, target roles and roadmap milestones, compares fit across career paths, provides deterministic career scenario projections, and compares resume keyword evidence with role requirements (not an external generative AI service).
+SkillTwin is a career-readiness dashboard for engineering students. It includes a React/Vite client and an Express API backed by MySQL. The dashboard tracks skills, target roles and roadmap milestones, compares fit across career paths, provides deterministic career scenario projections, and compares resume keyword evidence with role requirements (not an external generative AI service). Original role learning roadmaps are public at `/roadmaps` and do not require an account.
 
 ## Requirements
 
@@ -16,7 +16,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm --prefix backend install
    ```
 
-2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). For an existing database, select the target schema and apply unapplied migrations in order through `012_saved_career_roles.sql` (for example, `mysql -u root -p skilltwin < backend/migrations/012_saved_career_roles.sql`). Migration files do not select a schema for you. Migration 009 adds the role-aware categorized skill catalog, migration 010 widens CGPA storage to include 10.00 without dropping student data, migration 011 adds private resume-analysis history, and migration 012 adds an account-owned career shortlist. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
+2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). For an existing database, select the target schema and apply unapplied migrations in order through `013_expanded_career_catalog.sql` (for example, `mysql -u root -p skilltwin < backend/migrations/013_expanded_career_catalog.sql`). Migration files do not select a schema for you. Migration 009 adds the role-aware categorized skill catalog, migration 010 widens CGPA storage to include 10.00 without dropping student data, migration 011 adds private resume-analysis history, migration 012 adds an account-owned career shortlist, and migration 013 expands the supported career-role catalog and role skill requirements. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
 
 3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET` (at least 32 characters for production).
 
@@ -68,7 +68,7 @@ Password recovery is not currently configured. The login screen labels this hone
 
 ## Project progress
 
-The implementation and historical local verification status for Phases 1–19 is tracked in [`docs/phases-1-12-status.md`](docs/phases-1-12-status.md); current audit evidence is in [`project-audit/PROJECT_STATUS_AND_HANDOVER.md`](project-audit/PROJECT_STATUS_AND_HANDOVER.md). The database relationships are documented in [`docs/database-erd.md`](docs/database-erd.md). These documents distinguish source evidence from production deployment, which remains unverified.
+The implementation and historical local verification status for Phases 1–20 is tracked in [`docs/phases-1-12-status.md`](docs/phases-1-12-status.md); current audit evidence is in [`project-audit/PROJECT_STATUS_AND_HANDOVER.md`](project-audit/PROJECT_STATUS_AND_HANDOVER.md). The database relationships are documented in [`docs/database-erd.md`](docs/database-erd.md). These documents distinguish source evidence from production deployment, which remains unverified.
 
 ### Phase 10 — Assessments (implemented)
 
@@ -143,6 +143,12 @@ Phase 12 uses the Phase 11 `roadmap_milestones` table and adds no additional dat
 
 - A global navbar control switches the app between light and dark themes. The selected theme is saved in browser storage and restored on the next visit.
 - The system color palette covers the home, sign-in, onboarding, dashboard, roadmap, and shared navigation surfaces.
+
+### Phase 20 — Public role roadmap catalogue (implemented in source; MySQL verification pending)
+
+- `/roadmaps` is a public, shareable page. Visitors can browse role guides without signing in, and role-specific selections are reflected in the page URL.
+- The catalogue includes 14 original 12-week roadmaps. The database role picker and career comparisons also include the expanded role set.
+- Existing databases apply `013_expanded_career_catalog.sql`; fresh installs receive the same added roles and skill mappings from `backend/schema.sql`. The migration adds role and skill rows without adding tables.
 
 ## Project audit — 2026-10-26
 

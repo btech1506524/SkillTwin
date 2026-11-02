@@ -1,5 +1,19 @@
 # SkillTwin improvement run changelog
 
+## 2 November 2026 — Phase 20: public role roadmap catalogue
+
+### Implementation
+
+- `src/pages/RoleRoadmaps.jsx`, `src/App.jsx`, `src/components/Navbar.jsx`, and `src/pages/Home.jsx` — expose `/roadmaps` to every visitor, add home/navigation links, and support shareable role selection.
+- `src/data/roleRoadmaps.js`, `src/components/RoleRoadmapExplorer.jsx`, and `src/design-system.css` — expand the on-site curriculum to 14 original role guides and present a browsable catalogue with sequenced phases, outcomes, and skill areas.
+- `backend/migrations/013_expanded_career_catalog.sql` and `backend/schema.sql` — add eight role records, their skill rows, and role requirement mappings for existing and fresh databases. No tables were added.
+- README, phase tracker, ERD, requirements traceability, and project handoff now describe the public route and migration 013.
+
+### Verification boundary
+
+- Frontend build, Graphify update, and `git diff --check` results are recorded in the Phase 20 handoff.
+- MySQL fresh/upgrade checks and browser smoke checks remain pending; no database was modified.
+
 ## 2 November 2026 — Phase 19: persistent dark mode
 
 ### Implementation

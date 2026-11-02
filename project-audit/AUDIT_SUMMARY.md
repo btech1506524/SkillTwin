@@ -5,7 +5,7 @@
 
 ## Outcome
 
-The repository-wide improvement pass repaired the confirmed local defects: role selection through signup, demo persistence/coherence, OAuth-field exposure in admin browsing, CGPA precision, optional-skill simulator semantics, and the misleading password-recovery affordance. It added application auth limits, shared readiness/security helpers, backend contract coverage, dependency upgrades, and a responsive redesign for student and admin surfaces. Phase 15 adds browser-local PDF/text extraction and private resume-analysis history; Phase 16 makes the shared animation respect reduced-motion preferences; Phase 17 adds a database-backed career shortlist; Phase 18 adds original in-app learning paths for six roles; Phase 19 adds a persistent dark theme. See the phase handoffs for details.
+The repository-wide improvement pass repaired the confirmed local defects: role selection through signup, demo persistence/coherence, OAuth-field exposure in admin browsing, CGPA precision, optional-skill simulator semantics, and the misleading password-recovery affordance. It added application auth limits, shared readiness/security helpers, backend contract coverage, dependency upgrades, and a responsive redesign for student and admin surfaces. Phase 15 adds browser-local PDF/text extraction and private resume-analysis history; Phase 16 makes the shared animation respect reduced-motion preferences; Phase 17 adds a database-backed career shortlist; Phase 18 adds in-app learning paths; Phase 19 adds a persistent dark theme; Phase 20 publishes the 14-role roadmap library and expands database-backed roles. See the phase handoffs for details.
 
 ## Verification
 

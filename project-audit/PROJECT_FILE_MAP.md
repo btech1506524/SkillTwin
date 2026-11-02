@@ -8,7 +8,7 @@
 Browser
   └─ React 19 / React Router / Vite 8
        ├─ AuthContext: account session and isolated persistent demo state
-       ├─ pages: home, login, signup, onboarding, dashboard, OAuth callback
+       ├─ pages: home, login, signup, onboarding, dashboard, public role roadmaps, OAuth callback
        └─ Axios API client → same-origin /api or Vercel rewrite
 
 Express 5 API
@@ -36,7 +36,7 @@ Express 5 API
 
 ## Database and deployment
 
-`backend/schema.sql` defines the current 18-table source schema. Migrations 001–012 are forward upgrades; 007 adds OAuth tables, 008 onboarding state, 009 the categorized role catalog, 010 CGPA precision, 011 resume-analysis history, and 012 saved career paths. `docs/database-erd.md` is reconciled to this source. `vercel.json` hosts the frontend/rewrite; `render.yaml` hosts the API and points to Railway MySQL with TLS. Hosted topology and actual schema state remain unverified.
+`backend/schema.sql` defines the current 18-table source schema. Migrations 001–013 are forward upgrades; 007 adds OAuth tables, 008 onboarding state, 009 the categorized role catalog, 010 CGPA precision, 011 resume-analysis history, 012 saved career paths, and 013 expands roles and their skill requirements. The public `/roadmaps` page uses the in-app role curriculum and does not require API authentication. `docs/database-erd.md` is reconciled to this source. `vercel.json` hosts the frontend/rewrite; `render.yaml` hosts the API and points to Railway MySQL with TLS. Hosted topology and actual schema state remain unverified.
 
 ## Safety boundaries
 
