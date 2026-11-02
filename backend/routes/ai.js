@@ -5,6 +5,16 @@ const { calculateReadiness, scoreForLevel } = require("../lib/readiness");
 
 const router = express.Router();
 
+function parseStoredAnalysis(value) {
+  if (typeof value === "string") return JSON.parse(value);
+  return value;
+}
+
+function parseAnalysisId(value) {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
 const resumeSkillAliases = {
   "Data Structures & Algorithms": ["data structures and algorithms", "data structures & algorithms", "data structures", "algorithms", "dsa"],
   "Object-Oriented Programming (Java/C++)": ["object-oriented programming", "object oriented programming", "oop", "java", "c++", "c plus plus"],
@@ -164,6 +174,7 @@ router.post(
   "/analyze-resume",
   authMiddleware,
   async (req, res) => {
+    let connection;
     try {
       const resumeText = typeof req.body?.resumeText === "string" ? req.body.resumeText.trim() : "";
       if (!resumeText) {
@@ -171,6 +182,16 @@ router.post(
       }
       if (resumeText.length > 20000) {
         return res.status(413).json({ success: false, message: "Resume text must be 20,000 characters or fewer." });
+      }
+      if (Buffer.byteLength(JSON.stringify(req.body || {}), "utf8") > 60 * 1024) {
+        return res.status(413).json({ success: false, message: "Resume text is too large to analyze. Shorten it and try again." });
+      }
+
+      const sourceTypes = new Set(["pasted_text", "text_file", "pdf_file"]);
+      const sourceType = sourceTypes.has(req.body?.sourceType) ? req.body.sourceType : "pasted_text";
+      const requestedName = typeof req.body?.reportName === "string" ? req.body.reportName.trim() : "";
+      if (requestedName.length > 80) {
+        return res.status(400).json({ success: false, message: "Report names must be 80 characters or fewer." });
       }
 
       const [requirements] = await db.query(
@@ -228,8 +249,7 @@ router.post(
       const gaps = missingSkills.map(skill => `${skill.skillName} (required: ${skill.requiredLevel}) has no matching keyword evidence.`);
       const recommendedKeywords = [...new Set(missingSkills.slice(0, 6).map(skill => skill.skillName))];
 
-      res.json({
-        success: true,
+      const report = {
         roleName: requirements[0].roleName,
         matchPercentage,
         summary: {
@@ -245,17 +265,138 @@ router.post(
         recommendedKeywords,
         recommendations,
         analysisType: "deterministic_keyword_evidence"
+      };
+
+      const reportName = requestedName || `Resume review · ${new Date().toISOString().slice(0, 10)}`;
+      connection = await db.getConnection();
+      await connection.beginTransaction();
+      // Serialize retention pruning per account so concurrent analyses cannot
+      // leave more than the 20-report history cap.
+      await connection.query("SELECT user_id FROM users WHERE user_id = ? FOR UPDATE", [req.user.user_id]);
+      const [insertResult] = await connection.query(
+        `INSERT INTO resume_analyses
+           (user_id, report_name, source_type, role_name, match_percentage, analysis_json)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [req.user.user_id, reportName, sourceType, report.roleName, matchPercentage, JSON.stringify(report)]
+      );
+      const [expiredRows] = await connection.query(
+        `SELECT analysis_id FROM resume_analyses
+         WHERE user_id = ?
+         ORDER BY created_at DESC, analysis_id DESC
+         LIMIT 20 OFFSET 20`,
+        [req.user.user_id]
+      );
+      if (expiredRows.length) {
+        await connection.query(
+          `DELETE FROM resume_analyses
+           WHERE user_id = ? AND analysis_id IN (${expiredRows.map(() => "?").join(",")})`,
+          [req.user.user_id, ...expiredRows.map(row => row.analysis_id)]
+        );
+      }
+      await connection.commit();
+
+      res.status(201).json({
+        success: true,
+        analysisId: insertResult.insertId,
+        reportName,
+        sourceType,
+        createdAt: new Date().toISOString(),
+        ...report
       });
     } catch (error) {
+      if (connection) {
+        try { await connection.rollback(); } catch {}
+      }
       console.error("Resume analysis error:", error.code || error.name || "Error");
       res.status(500).json({
         success: false,
         message: "Resume analysis failed."
       });
-
+    } finally {
+      connection?.release();
     }
   }
 );
+
+// =====================================================
+// PRIVATE RESUME ANALYSIS HISTORY
+// =====================================================
+
+router.get("/resume-analyses", authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT analysis_id AS id, report_name AS reportName, source_type AS sourceType,
+              role_name AS roleName, match_percentage AS matchPercentage,
+              analysis_json AS analysisJson, created_at AS createdAt
+       FROM resume_analyses
+       WHERE user_id = ?
+       ORDER BY created_at DESC, analysis_id DESC
+       LIMIT 20`,
+      [req.user.user_id]
+    );
+    const analyses = rows.map(row => {
+      const report = parseStoredAnalysis(row.analysisJson);
+      return {
+        id: Number(row.id),
+        reportName: row.reportName,
+        sourceType: row.sourceType,
+        roleName: row.roleName,
+        matchPercentage: Number(row.matchPercentage),
+        summary: report.summary,
+        createdAt: row.createdAt
+      };
+    });
+    res.json({ success: true, analyses });
+  } catch (error) {
+    console.error("Resume history read error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to load resume history." });
+  }
+});
+
+router.get("/resume-analyses/:analysisId", authMiddleware, async (req, res) => {
+  const analysisId = parseAnalysisId(req.params.analysisId);
+  if (!analysisId) return res.status(400).json({ success: false, message: "A valid analysis ID is required." });
+  try {
+    const [rows] = await db.query(
+      `SELECT analysis_id AS id, report_name AS reportName, source_type AS sourceType,
+              role_name AS roleName, match_percentage AS matchPercentage,
+              analysis_json AS analysisJson, created_at AS createdAt
+       FROM resume_analyses WHERE analysis_id = ? AND user_id = ?`,
+      [analysisId, req.user.user_id]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: "Resume analysis not found." });
+    const row = rows[0];
+    res.json({
+      success: true,
+      analysis: {
+        id: Number(row.id),
+        reportName: row.reportName,
+        sourceType: row.sourceType,
+        createdAt: row.createdAt,
+        ...parseStoredAnalysis(row.analysisJson)
+      }
+    });
+  } catch (error) {
+    console.error("Resume analysis detail error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to load this resume analysis." });
+  }
+});
+
+router.delete("/resume-analyses/:analysisId", authMiddleware, async (req, res) => {
+  const analysisId = parseAnalysisId(req.params.analysisId);
+  if (!analysisId) return res.status(400).json({ success: false, message: "A valid analysis ID is required." });
+  try {
+    const [result] = await db.query(
+      "DELETE FROM resume_analyses WHERE analysis_id = ? AND user_id = ?",
+      [analysisId, req.user.user_id]
+    );
+    if (!result.affectedRows) return res.status(404).json({ success: false, message: "Resume analysis not found." });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Resume analysis delete error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to remove this resume analysis." });
+  }
+});
 
 
 module.exports = router;

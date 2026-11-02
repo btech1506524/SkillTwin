@@ -8,6 +8,8 @@ const router = express.Router();
 router.use(authMiddleware, adminMiddleware);
 
 const tableNamePattern = /^[A-Za-z0-9_]+$/;
+const hiddenAdminTables = new Set(["resume_analyses", "saved_career_roles"]);
+const isHiddenAdminTable = name => hiddenAdminTables.has(String(name).toLowerCase());
 const quoteIdentifier = value => `\`${String(value).replace(/`/g, "``")}\``;
 const parsePositiveInt = (value, fallback, max) => {
   const parsed = Number(value);
@@ -276,7 +278,7 @@ router.get("/database/tables", async (req, res) => {
        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
        ORDER BY TABLE_NAME`
     );
-    const enriched = await Promise.all(tables.map(async table => {
+    const enriched = await Promise.all(tables.filter(table => !isHiddenAdminTable(table.name)).map(async table => {
       const safeTableName = quoteIdentifier(table.name);
       const [[counts]] = await db.query(`SELECT COUNT(*) AS total FROM ${safeTableName}`);
       const [[columnCount]] = await db.query(
@@ -295,6 +297,7 @@ router.get("/database/tables", async (req, res) => {
 router.get("/database/tables/:tableName", async (req, res) => {
   const { tableName } = req.params;
   if (!tableNamePattern.test(tableName)) return res.status(400).json({ success: false, message: "Invalid table name." });
+  if (isHiddenAdminTable(tableName)) return res.status(404).json({ success: false, message: "Table not found in the application database." });
   const page = parsePositiveInt(req.query.page, 1, 100000);
   const limit = parsePositiveInt(req.query.limit, 25, 100);
   try {

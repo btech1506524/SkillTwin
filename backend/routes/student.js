@@ -7,16 +7,7 @@ const router = express.Router();
 
 const importanceScores = { Low: 1, Medium: 2, High: 3, Critical: 4 };
 
-async function getCareerReadiness(userId) {
-  const [rows] = await db.query(
-    `SELECT r.role_id, r.role_name, s.skill_id, s.skill_name, s.category,
-            crs.required_level, crs.importance,
-            profile.proficiency_score, profile.user_id AS profile_user_id
-     FROM users u
-     JOIN career_roles r ON r.role_name = u.target_role
-     JOIN career_role_skills crs ON crs.role_id = r.role_id
-     JOIN skills s ON s.skill_id = crs.skill_id
-     LEFT JOIN (
+const profileSkillsJoin = `LEFT JOIN (
        SELECT us.user_id,
               CASE
                 WHEN source_skill.skill_name = 'Data Structures and Algorithms' THEN 'Data Structures & Algorithms'
@@ -29,32 +20,9 @@ async function getCareerReadiness(userId) {
        FROM user_skills us
        JOIN skills source_skill ON source_skill.skill_id = us.skill_id
        GROUP BY us.user_id, canonical_skill_name
-     ) profile ON profile.user_id = u.user_id AND profile.canonical_skill_name = s.skill_name
-     WHERE u.user_id = ? AND crs.is_required = TRUE
-     ORDER BY crs.importance DESC, s.skill_name`,
-    [userId]
-  );
+     ) profile ON profile.user_id = u.user_id AND profile.canonical_skill_name = s.skill_name`;
 
-  if (!rows.length) {
-    return {
-      targetRole: null,
-      readinessScore: null,
-      totalRequiredSkills: 0,
-      missingCount: 0,
-      belowTargetCount: 0,
-      metCount: 0,
-      hasProfiledSkills: false,
-      skills: [],
-      gaps: []
-    };
-  }
-
-  const [[profiled]] = await db.query(
-    "SELECT COUNT(*) AS total FROM user_skills WHERE user_id = ?",
-    [userId]
-  );
-  const hasProfiledSkills = Number(profiled?.total || 0) > 0;
-
+function summarizeRoleReadiness(rows, hasProfiledSkills) {
   const skills = rows.map(row => {
     const required = levelScores[row.required_level] || 50;
     const missing = row.profile_user_id === null;
@@ -88,6 +56,106 @@ async function getCareerReadiness(userId) {
     skills,
     gaps: skills.filter(skill => skill.status !== "Met")
   };
+}
+
+async function getCareerReadiness(userId) {
+  const [rows] = await db.query(
+    `SELECT r.role_id, r.role_name, s.skill_id, s.skill_name, s.category,
+            crs.required_level, crs.importance,
+            profile.proficiency_score, profile.user_id AS profile_user_id
+     FROM users u
+     JOIN career_roles r ON r.role_name = u.target_role
+     JOIN career_role_skills crs ON crs.role_id = r.role_id
+     JOIN skills s ON s.skill_id = crs.skill_id
+     ${profileSkillsJoin}
+     WHERE u.user_id = ? AND crs.is_required = TRUE
+     ORDER BY crs.importance DESC, s.skill_name`,
+    [userId]
+  );
+
+  if (!rows.length) {
+    return {
+      targetRole: null,
+      readinessScore: null,
+      totalRequiredSkills: 0,
+      missingCount: 0,
+      belowTargetCount: 0,
+      metCount: 0,
+      hasProfiledSkills: false,
+      skills: [],
+      gaps: []
+    };
+  }
+
+  const [[profiled]] = await db.query(
+    "SELECT COUNT(*) AS total FROM user_skills WHERE user_id = ?",
+    [userId]
+  );
+  const readiness = summarizeRoleReadiness(rows, Number(profiled?.total || 0) > 0);
+
+  return {
+    targetRole: { id: rows[0].role_id, name: rows[0].role_name },
+    ...readiness
+  };
+}
+
+async function getCareerPathSummaries(userId) {
+  const [results, profileResults] = await Promise.all([
+    db.query(
+      `SELECT r.role_id, r.role_name, r.description,
+              r.role_name = u.target_role AS is_target_role,
+              saved.role_id IS NOT NULL AS is_saved,
+              s.skill_id, s.skill_name, s.category,
+              crs.required_level, crs.importance,
+              profile.proficiency_score, profile.user_id AS profile_user_id
+       FROM users u
+       JOIN career_roles r ON TRUE
+       LEFT JOIN saved_career_roles saved
+         ON saved.user_id = u.user_id AND saved.role_id = r.role_id
+       LEFT JOIN career_role_skills crs
+         ON crs.role_id = r.role_id AND crs.is_required = TRUE
+       LEFT JOIN skills s ON s.skill_id = crs.skill_id
+       ${profileSkillsJoin}
+       WHERE u.user_id = ?
+       ORDER BY r.role_name, crs.importance DESC, s.skill_name`,
+      [userId]
+    ),
+    db.query("SELECT COUNT(*) AS total FROM user_skills WHERE user_id = ?", [userId])
+  ]);
+  const [rows] = results;
+  const [[profiled]] = profileResults;
+  const hasProfiledSkills = Number(profiled?.total || 0) > 0;
+  const roleMap = new Map();
+
+  for (const row of rows) {
+    if (!roleMap.has(row.role_id)) {
+      roleMap.set(row.role_id, {
+        id: row.role_id,
+        name: row.role_name,
+        description: row.description,
+        isTargetRole: Boolean(row.is_target_role),
+        isSaved: Boolean(row.is_saved),
+        rows: []
+      });
+    }
+    if (row.skill_id !== null) roleMap.get(row.role_id).rows.push(row);
+  }
+
+  return [...roleMap.values()].map(role => {
+    const { rows: roleRows, ...details } = role;
+    const { skills, gaps, ...summary } = summarizeRoleReadiness(roleRows, hasProfiledSkills);
+    return {
+      ...details,
+      ...summary,
+      topGaps: gaps.slice(0, 3).map(({ skillName, current, required, gap, importance }) => ({
+        skillName,
+        current,
+        required,
+        gap,
+        importance
+      }))
+    };
+  });
 }
 
 async function refreshAndPersistReadiness(userId) {
@@ -650,6 +718,55 @@ router.put("/target-role", authMiddleware, async (req, res) => {
 // GET STUDENT READINESS
 // GET /api/student/readiness
 // =====================================================
+
+router.get("/career-paths", authMiddleware, async (req, res) => {
+  try {
+    const careerPaths = await getCareerPathSummaries(req.user.user_id);
+    res.json({ success: true, careerPaths });
+  } catch (error) {
+    console.error("Career path comparison error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to compare career paths." });
+  }
+});
+
+router.post("/saved-career-roles", authMiddleware, async (req, res) => {
+  const roleId = Number(req.body?.roleId);
+  if (!Number.isSafeInteger(roleId) || roleId < 1) {
+    return res.status(400).json({ success: false, message: "Choose a supported career role." });
+  }
+
+  try {
+    const [roles] = await db.query("SELECT role_id FROM career_roles WHERE role_id = ?", [roleId]);
+    if (!roles.length) return res.status(404).json({ success: false, message: "Career role not found." });
+
+    const [result] = await db.query(
+      "INSERT IGNORE INTO saved_career_roles (user_id, role_id) VALUES (?, ?)",
+      [req.user.user_id, roleId]
+    );
+    res.status(result.affectedRows ? 201 : 200).json({ success: true, roleId, saved: true });
+  } catch (error) {
+    console.error("Career path save error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to save this career path." });
+  }
+});
+
+router.delete("/saved-career-roles/:roleId", authMiddleware, async (req, res) => {
+  const roleId = Number(req.params.roleId);
+  if (!Number.isSafeInteger(roleId) || roleId < 1) {
+    return res.status(400).json({ success: false, message: "Choose a supported career role." });
+  }
+
+  try {
+    const [result] = await db.query(
+      "DELETE FROM saved_career_roles WHERE user_id = ? AND role_id = ?",
+      [req.user.user_id, roleId]
+    );
+    res.json({ success: true, roleId, saved: false, removed: result.affectedRows > 0 });
+  } catch (error) {
+    console.error("Career path removal error:", error.code || error.name || "Error");
+    res.status(500).json({ success: false, message: "Unable to remove this career path." });
+  }
+});
 
 router.put("/milestones", authMiddleware, async (req, res) => {
   try {
