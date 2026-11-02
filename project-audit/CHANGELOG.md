@@ -1,5 +1,35 @@
 # SkillTwin improvement run changelog
 
+## 2 November 2026 — Phase 19: persistent dark mode
+
+### Implementation
+
+- `src/context/ThemeContext.jsx`, `src/App.jsx` — add app-wide theme state, persist the user's selection in local storage, and apply it to the document root.
+- `src/components/Navbar.jsx`, `src/design-system.css` — add an accessible light/dark toggle and dark palette for shared app surfaces.
+- `README.md`, `docs/phases-1-12-status.md`, and `project-audit/*` — record the feature and verification boundary.
+
+### Verification boundary
+
+- `npm run build` — PASS; Vite production bundle built successfully.
+- `git diff --check` — PASS.
+- SQL-aware Graphify update — PASS; graph contains 496 nodes and 815 edges.
+- Browser theme-switch and reload checks have not been smoke-tested in this environment.
+
+## 2 November 2026 — Phase 18: in-app role roadmaps
+
+### Implementation
+
+- `src/data/roleRoadmaps.js` — adds original 12-week curricula for all six supported roles, each with four phases, outcomes, and topic tags.
+- `src/components/RoleRoadmapExplorer.jsx`, `src/pages/Dashboard.jsx`, `src/design-system.css` — add an in-app role selector and structured timeline below the existing personalized milestones. Preview selection does not modify the user's target role or saved progress.
+- No external roadmap content, API, database, migration, or dependency change is involved.
+
+### Verification boundary
+
+- `npm run build` — PASS; Vite production bundle built successfully.
+- `git diff --check` — PASS.
+- SQL-aware Graphify update — PASS; graph contains 496 nodes and 815 edges.
+- Browser role-switch and responsive-layout checks have not been smoke-tested in this environment.
+
 **Run date:** 26 October 2026  
 **Starting revision:** `main` at `main...origin/main`  
 **Scope guard:** local source/documentation/dependency work only; no commit, deploy, production database, hosted secret, or push.
@@ -132,3 +162,62 @@ Use `NEXT_AGENT_TASKS.md` for the exact disposable-DB, browser, staging, passwor
 | Backend/MySQL/OAuth integration | Not rerun — redesign preserved existing contracts; prior blockers remain |
 
 No dependency or backend API/schema changes were made for the redesign.
+
+## 2 November 2026 — Phase 15: resume import and analysis history
+
+### Implementation
+
+- `src/services/resumeImport.js` — uses Mozilla PDF.js in the browser to extract text from PDF files and UTF-8 text files. Enforces 5 MB total file size, 1 MB text-file size, 10 PDF pages, 20,000 extracted characters, and a serialized request-size limit. PDF source files are not uploaded; scanned PDFs are unsupported.
+- `src/pages/Dashboard.jsx` — adds file import, report naming, a private saved-report list, report detail loading, two-report comparison, deletion confirmation, and retention/privacy copy.
+- `src/design-system.css` — styles import controls, history, comparison, and responsive states.
+- `src/services/api.js` — adds analysis history list/detail/delete calls and source/report metadata to the analyze request.
+- `backend/routes/ai.js` — stores result JSON only, serializes account retention pruning, and scopes every history read/delete to the authenticated user.
+- `backend/routes/admin.js` — excludes the private `resume_analyses` table from administrator table browsing.
+- `backend/schema.sql`, `backend/migrations/011_resume_analysis_history.sql` — add the user-owned history table with account-delete cascade. Existing databases apply migration 011; fresh installs use the updated source schema.
+- `README.md`, `docs/database-erd.md`, `docs/phases-1-12-status.md`, and `project-audit/*` — update phase status, API/schema notes, and this handoff.
+
+### Privacy and retention decisions
+
+- The raw resume text and original file are not stored in database or application logs. Extracted text is sent to the API only for the requested analysis.
+- Saved reports contain the role, match result, skill evidence labels, recommendations, report name, source type, and timestamp. Reports remain until manually deleted or pruned beyond the latest 20 per account.
+- Reports are owner-scoped and cascade-delete with the user account. No administrator report-browsing route was added.
+- The administrator database table browser explicitly hides the reports table. Database operators with direct infrastructure access can still access database contents.
+
+### Verification boundary
+
+- Frontend production build is recorded in the Phase 15 handoff.
+- Existing backend contract tests were not changed or rerun after Phase 15; the documented 26 October result is historical.
+- Disposable MySQL migration/ownership/retention checks and browser import/comparison checks remain pending. No deployment, provider, production DB, or hosted secret was accessed.
+
+## 2 November 2026 — Phase 16: motion-aware shared background
+
+### Implementation
+
+- `src/components/ParticleBackground.jsx` — honors the browser's reduced-motion preference by drawing a static scene, updates behavior if the preference changes, pauses requestAnimationFrame while the document is hidden, restarts when visible, and marks the decorative canvas hidden from assistive technology and focus.
+- Rebuilds particle positions after viewport resize. Retains the existing 38-particle budget and proximity-line algorithm; no new dependency, API, or database state was needed.
+- `README.md`, `docs/phases-1-12-status.md`, and `project-audit/*` — update the current phase tracker and handoff.
+
+### Verification boundary
+
+- `npm run build` — PASS on 2 November 2026.
+- `git diff --check` — PASS on 2 November 2026.
+- `graphify update .` — PASS; updated the project graph to 407 nodes and 682 edges.
+- Browser smoke checks for reduced-motion changes, tab visibility, and resize remain pending.
+
+## 2 November 2026 — Phase 17: career path shortlist
+
+### Implementation
+
+- `backend/schema.sql`, `backend/migrations/012_saved_career_roles.sql` — add an account-owned role shortlist keyed by `(user_id, role_id)` with cascade deletion and a role lookup index.
+- `backend/routes/student.js` — share the existing required-skill scoring logic across the target-role view and a new authenticated career-path comparison endpoint. Add idempotent owner-scoped save and remove routes.
+- `backend/routes/admin.js` — hide `saved_career_roles` from the read-only administrator table browser.
+- `src/services/api.js`, `src/components/CareerPathsPanel.jsx`, `src/pages/Dashboard.jsx`, `src/design-system.css` — add the Career Paths tab with per-role skill fit, matched requirement count, top gaps, and a filterable save/remove shortlist.
+- `README.md`, `docs/database-erd.md`, `docs/phases-1-12-status.md`, and `project-audit/*` — document the current 18-table source schema, migration 012, endpoints, rollout, and verification boundary.
+
+### Verification boundary
+
+- `npm run build` — PASS on 2 November 2026.
+- `npm --prefix backend run build` — PASS on 2 November 2026.
+- `git diff --check` — PASS on 2 November 2026.
+- SQL-aware Graphify update — PASS; graph now contains 466 nodes and 771 edges.
+- Browser path comparison/shortlist checks and disposable MySQL migration/ownership/cascade checks remain pending. No database was modified.

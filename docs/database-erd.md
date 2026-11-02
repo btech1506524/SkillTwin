@@ -1,6 +1,6 @@
 # SkillTwin database ER diagram
 
-This diagram reflects `backend/schema.sql` and migrations through `010_cgpa_precision.sql`. It describes the current source schema; the actual deployed database still requires inspection in a disposable or authorized environment. It does not include planned resume storage, chatbot history, or a separate progress-snapshot model.
+This diagram reflects the 18-table `backend/schema.sql` and migrations through `012_saved_career_roles.sql`. It describes the current source schema; the actual deployed database still requires inspection in a disposable or authorized environment. Resume files and extracted source text are not stored.
 
 ```mermaid
 erDiagram
@@ -41,6 +41,12 @@ erDiagram
     string required_level
     boolean is_required
     string importance
+  }
+
+  SAVED_CAREER_ROLES {
+    int user_id PK, FK
+    int role_id PK, FK
+    datetime created_at
   }
 
   ROADMAPS {
@@ -135,10 +141,23 @@ erDiagram
     datetime expires_at
   }
 
+  RESUME_ANALYSES {
+    bigint analysis_id PK
+    int user_id FK
+    string report_name
+    string source_type
+    string role_name
+    int match_percentage
+    json analysis_json
+    datetime created_at
+  }
+
   USERS ||--o{ USER_SKILLS : records
   SKILLS ||--o{ USER_SKILLS : describes
   CAREER_ROLES ||--o{ CAREER_ROLE_SKILLS : requires
   SKILLS ||--o{ CAREER_ROLE_SKILLS : required_for
+  USERS ||--o{ SAVED_CAREER_ROLES : saves
+  CAREER_ROLES ||--o{ SAVED_CAREER_ROLES : shortlisted
   USERS ||--o{ ROADMAPS : owns
   CAREER_ROLES ||--o{ ROADMAPS : targets
   ROADMAPS ||--o{ ROADMAP_MILESTONES : contains
@@ -154,16 +173,20 @@ erDiagram
   USERS ||--o{ OAUTH_IDENTITIES : connects
   USERS o|--o{ OAUTH_LOGIN_ATTEMPTS : links
   USERS ||--o{ OAUTH_LOGIN_CODES : exchanges
+  USERS ||--o{ RESUME_ANALYSES : owns
 ```
 
 ## Relationship notes
 
 - `users.target_role` stores the selected role name. It is intentionally not a foreign key; the API validates the name against `career_roles` when it is changed.
 - `career_role_skills` is the many-to-many join between roles and skills. `is_required` controls whether a mapped skill contributes to readiness and gap roadmaps; optional role skills remain available in the categorized picker.
+- `saved_career_roles` keeps a student's private career shortlist. Its `(user_id, role_id)` primary key prevents duplicates, and both foreign keys cascade when an account or role is removed. The API compares saved self-ratings against the required skills for every configured role.
 - `skills.category` uses `common`, `core`, `soft`, or `specialized`. A skill is stored once and shared across relevant roles through `career_role_skills`.
 - `roadmap_milestones` are the persisted progress items. `user_milestones` remains a separate legacy checklist table used by older client flows.
 - Assessment answer keys are stored in the database and excluded from the question-fetch response. Submitted answer records reference both the saved attempt and the source question.
 - Admin actor and target references become `NULL` if the related user is deleted, so the audit event itself can remain.
 - OAuth identity rows belong to one user; login attempts store short-lived state/nonce/PKCE material and optional linking ownership, while login codes store one-time exchange hashes. These challenge fields are intentionally excluded from admin table browsing.
-- Existing installations apply migrations 001–010 in order. Migration 010 changes `users.cgpa` to `DECIMAL(4,2)` so the documented 0–10 range includes `10.00`; `schema.sql` uses the same type for fresh installs.
-- Resume analysis currently accepts text for a request and does not persist resumes or analysis history. Chat conversations and separate progress snapshots are not current tables.
+- Existing installations apply migrations 001–012 in order. Migration 010 changes `users.cgpa` to `DECIMAL(4,2)` so the documented 0–10 range includes `10.00`; migration 011 adds account-owned analysis history; migration 012 adds saved career paths. `schema.sql` has the same current shape for fresh installs.
+- `resume_analyses.analysis_json` stores the deterministic role-match result only. Source files and extracted resume text are not persisted; account deletion cascades to report history. The API retains at most 20 reports per user and supports owner-scoped reads/deletes.
+- The admin database table browser hides `saved_career_roles`; only the authenticated student's own shortlist is available through student APIs.
+- Chat conversations and separate progress snapshots are not current tables.

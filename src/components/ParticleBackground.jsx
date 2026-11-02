@@ -9,13 +9,11 @@ export default function ParticleBackground() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let animationId;
+    const motionQuery = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)')
+      : null;
+    let animationId = null;
     let particles = [];
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
 
     class Particle {
       constructor() {
@@ -45,54 +43,102 @@ export default function ParticleBackground() {
       }
     }
 
-    const init = () => {
-      resize();
-      // ERR-034 FIX: Optimized count (38 particles) + spatial distance squared threshold
-      // to avoid heavy Math.sqrt and frame drops on devices
-      particles = Array.from({ length: 38 }, () => new Particle());
-    };
-
     const maxDist = 120;
     const maxDistSq = maxDist * maxDist;
 
-    const animate = () => {
+    const drawFrame = (moveParticles) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const count = particles.length;
 
-      for (let i = 0; i < count; i++) {
-        const p = particles[i];
-        p.update();
-        p.draw();
+      for (let i = 0; i < particles.length; i++) {
+        const particle = particles[i];
+        if (moveParticles) particle.update();
+        particle.draw();
 
-        // Optimized proximity lines without repetitive sqrt
-        for (let j = i + 1; j < count; j++) {
-          const p2 = particles[j];
-          const dx = p.x - p2.x;
-          const dy = p.y - p2.y;
-          const distSq = dx * dx + dy * dy;
+        for (let j = i + 1; j < particles.length; j++) {
+          const other = particles[j];
+          const dx = particle.x - other.x;
+          const dy = particle.y - other.y;
+          const distanceSquared = dx * dx + dy * dy;
 
-          if (distSq < maxDistSq) {
-            const alpha = 0.05 * (1 - distSq / maxDistSq);
+          if (distanceSquared < maxDistSq) {
+            const alpha = 0.05 * (1 - distanceSquared / maxDistSq);
             ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(other.x, other.y);
             ctx.strokeStyle = `rgba(124, 58, 237, ${alpha})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
         }
       }
-
-      animationId = requestAnimationFrame(animate);
     };
 
-    init();
-    animate();
+    const stopAnimation = () => {
+      if (animationId !== null) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+    };
+
+    const prefersReducedMotion = () => motionQuery?.matches ?? false;
+
+    const startAnimation = () => {
+      stopAnimation();
+      if (document.hidden) return;
+
+      if (prefersReducedMotion()) {
+        drawFrame(false);
+        return;
+      }
+
+      const animate = () => {
+        if (document.hidden || prefersReducedMotion()) {
+          animationId = null;
+          drawFrame(false);
+          return;
+        }
+
+        drawFrame(true);
+        animationId = requestAnimationFrame(animate);
+      };
+
+      animate();
+    };
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      // Keep the existing light particle budget and rebuild positions for the new bounds.
+      particles = Array.from({ length: 38 }, () => new Particle());
+      startAnimation();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) stopAnimation();
+      else startAnimation();
+    };
+
+    const handleMotionChange = () => startAnimation();
+
     window.addEventListener('resize', resize);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    if (motionQuery?.addEventListener) {
+      motionQuery.addEventListener('change', handleMotionChange);
+    } else {
+      motionQuery?.addListener?.(handleMotionChange);
+    }
+
+    resize();
 
     return () => {
-      cancelAnimationFrame(animationId);
+      stopAnimation();
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (motionQuery?.removeEventListener) {
+        motionQuery.removeEventListener('change', handleMotionChange);
+      } else {
+        motionQuery?.removeListener?.(handleMotionChange);
+      }
     };
   }, []);
 
@@ -100,6 +146,8 @@ export default function ParticleBackground() {
     <canvas
       ref={canvasRef}
       className="particle-canvas"
+      aria-hidden="true"
+      focusable="false"
     />
   );
 }

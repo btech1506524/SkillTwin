@@ -1,6 +1,6 @@
-# SkillTwin project phases 1 to 12
+# SkillTwin project phase status (phases 1 to 19)
 
-Status reviewed on 26 October 2026 against the repository source and audit evidence. The database-backed checks below are historical evidence from 14 October 2026 and were not rerun in the current sandbox. “Complete” means implemented and checked in the cited environment; it does not claim a production deployment.
+Phases 1–12 retain the historical review below. Phases 13–19 were reviewed against source on 2 November 2026. Database-backed checks from 14 October 2026 were not rerun during the Phase 15–17 implementations. “Complete” means implemented in source; it does not claim current live database or production verification.
 
 ## Agreed scope for this implementation
 
@@ -20,7 +20,7 @@ The primary acceptance journey is:
 | --- | --- | --- |
 | 1. Requirements and planning | Complete | Scope, user journey, limitations, acceptance journey, and milestone tracker are recorded here and in the supplied project documentation. |
 | 2. UI/UX and frontend foundation | Complete | React/Vite routes, shared navigation, reusable UI, and centralized API client build. Local demo navigation through dashboard tabs was inspected in the browser. |
-| 3. Database and schema | Complete in source; runtime pending | `backend/schema.sql` defines the current 16-table shape. Existing installations use forward migrations 001–010, including OAuth tables in 007, onboarding in 008, role catalog in 009, and CGPA precision in 010. The current ER diagram is in [`database-erd.md`](database-erd.md); actual deployed table state still needs a disposable-database inspection. |
+| 3. Database and schema | Complete in source; runtime pending | `backend/schema.sql` defines the current 18-table shape. Existing installations use forward migrations 001–012, including OAuth tables in 007, onboarding in 008, role catalog in 009, CGPA precision in 010, resume-analysis history in 011, and saved career paths in 012. The current ER diagram is in [`database-erd.md`](database-erd.md); actual deployed table state still needs a disposable-database inspection. |
 | 4. Backend foundation | Complete | Express health endpoint reports the API and MySQL connection ready locally. Local development CORS and startup ports are configured. |
 | 5. Authentication and protected profile | Complete | Registration, password login, JWT protected profile retrieval, and rejection of missing/invalid JWTs passed against local MySQL. Profile responses include stored profile fields. |
 | 6. Student profile and skills | Complete | New accounts start with no fabricated skill ratings. Skill scores can be saved by `skill_id` or catalogue name, read back, and validated to the documented ranges. |
@@ -30,6 +30,13 @@ The primary acceptance journey is:
 | 10. Assessments | Complete | The catalogue and questions load, answer keys stay hidden before submission, and the server grades and stores attempts for the authenticated user. History and result details were checked. |
 | 11. Personalised roadmap | Complete | Roadmaps are generated from role gaps and persisted. Concurrent initial reads reuse the same current roadmap instead of creating duplicate snapshots. |
 | 12. Progress tracking | Complete | Milestone status and completion timestamps persist; aggregate progress reflects the saved status. Readiness refreshes after a skill update. |
+| 13. Role-aware resume evidence analysis | Complete in source; runtime pending | `backend/routes/ai.js` compares pasted text with saved-role requirements using deterministic keyword evidence. Source text is request-only. |
+| 14. Admin console | Complete in source; runtime pending | Protected admin analytics, account management, audit history, CSV export, and read-only table browsing are implemented. Hosted role checks remain unverified. |
+| 15. Resume import and analysis history | Implemented in source; MySQL/browser verification pending | Browser-side PDF.js extraction supports text-based PDFs up to 5 MB/10 pages and UTF-8 `.txt` up to 1 MB; extracted text is limited to 20,000 characters and never stored. Migration 011 stores only owner-scoped analysis results; each user retains at most 20 reports and can view, compare, or delete them. OCR and source-file storage are out of scope. |
+| 16. Motion-aware shared background | Implemented in source; browser preference/visibility behavior pending smoke check | The shared decorative particle canvas respects `prefers-reduced-motion`, pauses its animation while the document is hidden, restarts when visible, and remains absent from the accessibility tree. |
+| 17. Career path shortlist | Implemented in source; MySQL/browser verification pending | Authenticated students can compare required-skill fit across configured roles and save/remove shortlist entries. Migration 012 adds a unique account-role join with cascading deletion; the admin table browser hides its rows. |
+| 18. In-app role roadmaps | Implemented in source; browser check pending | The Learning Roadmap tab provides original, in-app 12-week tracks for all six configured roles. Previewing a track does not change the user's target role or saved milestones. |
+| 19. Dark mode | Implemented in source; browser check pending | A shared navbar control switches and persists the light/dark theme across frontend routes. |
 
 ## Historical local verification snapshot — 14 October 2026
 

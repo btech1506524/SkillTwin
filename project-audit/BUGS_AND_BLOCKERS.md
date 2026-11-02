@@ -1,6 +1,6 @@
 # SkillTwin findings and blockers
 
-**Updated:** 26 October 2026
+**Updated:** 2 November 2026
 
 This register supersedes the initial static audit after the implementation pass. “Fixed” means source and focused repository checks support the change; it does not imply a live MySQL, OAuth provider, or hosted deployment was tested.
 
@@ -11,7 +11,7 @@ This register supersedes the initial static audit after the implementation pass.
 | B-01 | Home career selection was lost before signup. | **FIXED** | `src/pages/Signup.jsx` now carries the query hint to onboarding, and `src/pages/Onboarding.jsx` validates it against the server role list before selecting and loading skills. `backend/test/contracts.test.js` covers the supported-role contract statically; live browser/API flow remains unavailable. |
 | B-02 | Demo edits reset despite the persistence copy. | **FIXED** | `src/context/AuthContext.jsx` stores demo state only under `skilltwin_demo_user`, restores valid state after reload, isolates it from account credentials, and clears it on demo logout. README and Signup copy now describe the actual behavior. Browser reload was not possible in this sandbox. |
 | B-03 | OAuth challenge fields were visible to the admin table browser. | **FIXED** | `backend/lib/security.js` excludes OAuth, nonce, verifier, state, and code-hash names; `backend/routes/admin.js` applies it to table metadata and rows. The backend test asserts all four OAuth challenge names are hidden. |
-| B-04 | ERD and phase documentation omitted OAuth tables and later migrations. | **FIXED** | `docs/database-erd.md` now includes all 16 source tables and OAuth relationships; `docs/phases-1-12-status.md` records migrations 001–010 and labels the 13-table count as historical. Actual configured database state is still unverified. |
+| B-04 | ERD and phase documentation omitted OAuth tables and later migrations. | **FIXED** | `docs/database-erd.md` now includes all 18 source tables and OAuth, resume-history, and career-shortlist relationships; phase status records migrations 001–012 and labels the 13-table count as historical. Actual configured database state is still unverified. |
 | B-05 | Auth rate limiting was delegated only to ingress. | **FIXED IN APPLICATION; STAGING INGRESS OPEN** | `backend/server.js` applies 15-minute per-instance IP limits of 10 login and 5 registration requests, uses `TRUST_PROXY_HOPS` explicitly, and documents the need for ingress limits across instances. No hosted ingress configuration or repeated staging request test was available. |
 | B-06 | “Forgot password?” was not a recovery flow. | **RECLASSIFIED / HONEST UI** | No email delivery or recovery configuration exists. `src/pages/Login.jsx` now says “Password recovery unavailable”; README documents the dependency and secure requirements for future work. |
 | B-07 | No repeatable automated checks existed. | **FIXED PARTIALLY** | Backend `npm test` now runs `backend/test/contracts.test.js` for health/auth rejection, admin authorization, readiness capping, OAuth field filtering, assessment answer secrecy, ownership SQL boundaries, and CGPA schema parity. Full MySQL integration coverage remains blocked by the environment. |
@@ -26,7 +26,7 @@ This register supersedes the initial static audit after the implementation pass.
 
 ## Additional scope decisions
 
-- Phase 15 resume import/history remains future scope. No upload, OCR, retention, or resume-storage feature was added.
+- Phase 15 is now implemented in source. Text files and PDFs are read in-browser; files and extracted text are not stored. Reports are owner-scoped, user-deletable, and capped at 20 per account. OCR remains out of scope; MySQL and browser flows still need verification.
 - The preliminary “AI career assistant” lead remains unconfirmed and is not implemented.
 - Password recovery remains explicitly unavailable until verified email delivery and a product decision exist.
 
@@ -34,4 +34,5 @@ This register supersedes the initial static audit after the implementation pass.
 
 - **PASS:** `npm run build`; `npm --prefix backend run build`; `npm --prefix backend test`; `npm audit --omit=dev`; `npm --prefix backend audit --omit=dev`.
 - **NOT RUN / BLOCKED:** disposable MySQL schema creation and upgrade, browser reload smoke, OAuth provider exchange, Vercel/Render/Railway health and ingress checks.
+- **NOT RUN after Phase 15:** browser PDF/text import and comparison checks; disposable-MySQL history ownership, delete, cascade, and retention checks.
 - No production database, deployment, push, commit, or hosted secret was accessed.

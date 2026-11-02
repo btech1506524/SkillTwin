@@ -4,7 +4,8 @@ import {
   Brain, Target, TrendingUp, FileText, CheckCircle2, Circle, AlertCircle, 
   Sparkles, Award, ArrowUpRight, ArrowRight, BarChart3, BookOpen, Layers,
   Cpu, Database, Shield, Code, ChevronRight, Sliders, Play, RotateCcw,
-  User, GraduationCap, Building2, Check, RefreshCw, ClipboardCheck
+  User, GraduationCap, Building2, Check, RefreshCw, ClipboardCheck, Upload,
+  Trash2, History, GitCompare
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -12,7 +13,9 @@ import ParticleBackground from '../components/ParticleBackground';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/api';
 import AssessmentsPanel from '../components/AssessmentsPanel';
+import CareerPathsPanel from '../components/CareerPathsPanel';
 import OAuthButtons from '../components/OAuthButtons';
+import RoleRoadmapExplorer from '../components/RoleRoadmapExplorer';
 
 const summarizeRoadmapItems = (items) => {
   const completed = items.filter(item => item.status === 'completed').length;
@@ -31,7 +34,7 @@ export default function Dashboard() {
   const { user, updateSkill, toggleMilestone, refreshCareerReadiness } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState('skills'); // 'skills', 'roadmap', 'simulator', 'resume'
+  const [activeTab, setActiveTab] = useState('skills'); // 'skills', 'career-paths', 'roadmap', 'simulator', 'resume'
   const [simulationActive, setSimulationActive] = useState(false);
   const [simulatedBoost, setSimulatedBoost] = useState(0);
   const [simulatedSkills, setSimulatedSkills] = useState([]);
@@ -39,6 +42,19 @@ export default function Dashboard() {
   const [resumeAnalysis, setResumeAnalysis] = useState(null);
   const [resumeError, setResumeError] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [resumeSourceType, setResumeSourceType] = useState('pasted_text');
+  const [resumeFileName, setResumeFileName] = useState('');
+  const [resumeReportName, setResumeReportName] = useState(() => `Resume review · ${new Date().toLocaleDateString()}`);
+  const [isImportingResume, setIsImportingResume] = useState(false);
+  const [resumeHistory, setResumeHistory] = useState([]);
+  const [resumeHistoryLoading, setResumeHistoryLoading] = useState(false);
+  const [resumeHistoryError, setResumeHistoryError] = useState('');
+  const [resumeHistoryActionId, setResumeHistoryActionId] = useState(null);
+  const [compareFromId, setCompareFromId] = useState('');
+  const [compareToId, setCompareToId] = useState('');
+  const [resumeComparison, setResumeComparison] = useState(null);
+  const [resumeCompareError, setResumeCompareError] = useState('');
+  const [isComparingResumes, setIsComparingResumes] = useState(false);
   const [roadmapItems, setRoadmapItems] = useState([]);
   const [roadmapProgress, setRoadmapProgress] = useState({ total: 0, completed: 0, inProgress: 0, planned: 0, percentage: 0 });
   const [roadmapLoading, setRoadmapLoading] = useState(false);
@@ -52,6 +68,31 @@ export default function Dashboard() {
 
   // If user is null, fallback cleanly or use session
   const student = user || {};
+  const hasAccountSession = !student.demo && Boolean(localStorage.getItem('skilltwin_token'));
+
+  useEffect(() => {
+    if (activeTab !== 'resume') return undefined;
+    if (!hasAccountSession) {
+      setResumeHistory([]);
+      setResumeHistoryError('');
+      return undefined;
+    }
+
+    let current = true;
+    setResumeHistoryLoading(true);
+    apiService.getResumeAnalyses().then(response => {
+      if (!current) return;
+      if (response?.success) {
+        setResumeHistory(response.analyses || []);
+        setResumeHistoryError('');
+      } else {
+        setResumeHistoryError(response?.message || 'Unable to load resume history.');
+      }
+    }).finally(() => {
+      if (current) setResumeHistoryLoading(false);
+    });
+    return () => { current = false; };
+  }, [activeTab, hasAccountSession, student.email]);
 
   const readinessCalculated = student.readinessScore != null;
   const currentScore = readinessCalculated ? Number(student.readinessScore) : 0;
@@ -209,11 +250,20 @@ export default function Dashboard() {
   const handleAnalyzeResume = async (e) => {
     e.preventDefault();
     if (!resumeText.trim()) {
-      setResumeError('Paste resume text before analyzing.');
+      setResumeError('Import a text-based file or enter resume text before analyzing.');
       return;
     }
-    if (!localStorage.getItem('skilltwin_token')) {
+    if (!hasAccountSession) {
       setResumeError('Sign in with an account to compare your resume with its saved role requirements.');
+      return;
+    }
+    const resumePayload = {
+      resumeText: resumeText.trim(),
+      sourceType: resumeSourceType,
+      reportName: resumeReportName.trim()
+    };
+    if (new TextEncoder().encode(JSON.stringify(resumePayload)).length > 60 * 1024) {
+      setResumeError('This resume contains too many encoded characters. Shorten it or remove extra line breaks and try again.');
       return;
     }
     setIsAnalyzing(true);
@@ -221,9 +271,16 @@ export default function Dashboard() {
     setResumeAnalysis(null);
 
     try {
-      const serverResult = await apiService.scanResumeText(resumeText);
+      const serverResult = await apiService.scanResumeText(resumePayload.resumeText, {
+        sourceType: resumePayload.sourceType,
+        reportName: resumePayload.reportName
+      });
       if (serverResult?.success) {
         setResumeAnalysis({
+          id: serverResult.analysisId,
+          reportName: serverResult.reportName,
+          sourceType: serverResult.sourceType,
+          createdAt: serverResult.createdAt,
           matchPercentage: serverResult.matchPercentage,
           roleName: serverResult.roleName,
           summary: serverResult.summary,
@@ -233,6 +290,11 @@ export default function Dashboard() {
           recommendedKeywords: serverResult.recommendedKeywords,
           recommendations: serverResult.recommendations
         });
+        const historyResult = await apiService.getResumeAnalyses();
+        if (historyResult?.success) setResumeHistory(historyResult.analyses || []);
+        setResumeHistoryError(historyResult?.success ? '' : historyResult?.message || 'The analysis was saved, but history could not be refreshed.');
+        setResumeComparison(null);
+        setResumeCompareError('');
       } else {
         setResumeError(serverResult?.message || 'Unable to analyze this resume right now.');
       }
@@ -242,6 +304,86 @@ export default function Dashboard() {
       setIsAnalyzing(false);
     }
   };
+
+  const handleResumeFileImport = async (event) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file) return;
+    setIsImportingResume(true);
+    setResumeError('');
+    try {
+      const { importResumeFile } = await import('../services/resumeImport');
+      const imported = await importResumeFile(file);
+      setResumeText(imported.text);
+      setResumeSourceType(imported.sourceType);
+      setResumeFileName(file.name);
+    } catch (error) {
+      setResumeError(error?.message || 'Unable to import this resume file.');
+    } finally {
+      setIsImportingResume(false);
+    }
+  };
+
+  const handleOpenResumeReport = async (analysisId) => {
+    setResumeHistoryActionId(analysisId);
+    setResumeHistoryError('');
+    try {
+      const response = await apiService.getResumeAnalysis(analysisId);
+      if (response?.success) setResumeAnalysis(response.analysis);
+      else setResumeHistoryError(response?.message || 'Unable to load this report.');
+    } finally {
+      setResumeHistoryActionId(null);
+    }
+  };
+
+  const handleDeleteResumeReport = async (item) => {
+    if (!window.confirm(`Remove “${item.reportName}” from your resume history? This cannot be undone.`)) return;
+    setResumeHistoryActionId(item.id);
+    setResumeHistoryError('');
+    try {
+      const response = await apiService.deleteResumeAnalysis(item.id);
+      if (!response?.success) {
+        setResumeHistoryError(response?.message || 'Unable to remove this report.');
+        return;
+      }
+      setResumeHistory(items => items.filter(historyItem => historyItem.id !== item.id));
+      if (resumeAnalysis?.id === item.id) setResumeAnalysis(null);
+      if (String(item.id) === compareFromId || String(item.id) === compareToId) setResumeComparison(null);
+    } finally {
+      setResumeHistoryActionId(null);
+    }
+  };
+
+  const handleCompareResumeReports = async (event) => {
+    event.preventDefault();
+    if (!compareFromId || !compareToId || compareFromId === compareToId) {
+      setResumeCompareError('Choose two different saved reports to compare.');
+      return;
+    }
+    setIsComparingResumes(true);
+    setResumeCompareError('');
+    setResumeComparison(null);
+    try {
+      const [fromResponse, toResponse] = await Promise.all([
+        apiService.getResumeAnalysis(compareFromId),
+        apiService.getResumeAnalysis(compareToId)
+      ]);
+      if (!fromResponse?.success || !toResponse?.success) {
+        setResumeCompareError(fromResponse?.message || toResponse?.message || 'Unable to load the selected reports.');
+        return;
+      }
+      setResumeComparison({ from: fromResponse.analysis, to: toResponse.analysis });
+    } finally {
+      setIsComparingResumes(false);
+    }
+  };
+
+  const comparisonAddedSkills = resumeComparison
+    ? resumeComparison.to.matchedSkills.filter(skill => !resumeComparison.from.matchedSkills.some(previous => previous.skillName === skill.skillName))
+    : [];
+  const comparisonRemovedSkills = resumeComparison
+    ? resumeComparison.from.matchedSkills.filter(skill => !resumeComparison.to.matchedSkills.some(current => current.skillName === skill.skillName))
+    : [];
 
   // Safe initial for avatar (ERR-031 fix)
   const avatarInitial = (student.name || 'S').trim().charAt(0).toUpperCase() || 'S';
@@ -409,6 +551,16 @@ export default function Dashboard() {
               <span>Skill Matrix & Gap Analysis</span>
             </button>
 
+            <button
+              className={`tab-btn ${activeTab === 'career-paths' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'career-paths'}
+              onClick={() => setActiveTab('career-paths')}
+            >
+              <Layers size={17} />
+              <span>Career Paths</span>
+            </button>
+
             <button 
               className={`tab-btn ${activeTab === 'roadmap' ? 'active' : ''}`}
               role="tab"
@@ -451,6 +603,8 @@ export default function Dashboard() {
           </div>
 
           <div className="tab-viewport">
+            {activeTab === 'career-paths' && <CareerPathsPanel hasAccountSession={hasAccountSession} />}
+
             {/* TAB 1: SKILL MATRIX */}
             {activeTab === 'skills' && (
               <div className="tab-pane skills-pane">
@@ -585,6 +739,7 @@ export default function Dashboard() {
                     );
                   })}
                 </div>
+                <RoleRoadmapExplorer targetRole={student.targetRole} />
               </div>
             )}
 
@@ -704,19 +859,47 @@ export default function Dashboard() {
                 <div className="resume-grid">
                   <div className="resume-input-box">
                     <form onSubmit={handleAnalyzeResume}>
+                      <label className="resume-field-label" htmlFor="resume-report-name">Report name</label>
+                      <input
+                        id="resume-report-name"
+                        className="resume-report-name"
+                        type="text"
+                        maxLength={80}
+                        value={resumeReportName}
+                        onChange={(e) => setResumeReportName(e.target.value)}
+                        aria-describedby="resume-privacy-note"
+                        disabled={!hasAccountSession || isAnalyzing}
+                      />
+                      <div className="resume-import-row">
+                        <label className={`resume-import-button ${(!hasAccountSession || isImportingResume) ? 'disabled' : ''}`} htmlFor="resume-file-input">
+                          <Upload size={16} /> {isImportingResume ? 'Reading file…' : 'Import PDF or text file'}
+                        </label>
+                        <input
+                          id="resume-file-input"
+                          className="resume-file-input"
+                          type="file"
+                          accept=".pdf,.txt,application/pdf,text/plain"
+                          onChange={handleResumeFileImport}
+                          disabled={!hasAccountSession || isImportingResume || isAnalyzing}
+                          aria-describedby="resume-file-guidance resume-privacy-note"
+                        />
+                        {resumeFileName && <span className="resume-file-name" title={resumeFileName}>{resumeFileName}</span>}
+                      </div>
+                      <p className="resume-file-guidance" id="resume-file-guidance">PDF up to 5 MB and 10 text pages; UTF-8 .txt up to 1 MB. Scanned image PDFs are not supported.</p>
                       <textarea
                         rows="7"
-                        placeholder="Paste your resume summary, project details, or tech stack here (e.g. Built a student attendance portal using React, Node.js, and MongoDB with JWT auth...)"
+                        placeholder="Paste resume text or import a text-based PDF or .txt file."
                         value={resumeText}
                         maxLength={20000}
-                        onChange={(e) => { setResumeText(e.target.value); setResumeError(''); }}
+                        onChange={(e) => { setResumeText(e.target.value); setResumeSourceType('pasted_text'); setResumeFileName(''); setResumeError(''); }}
                         aria-label="Resume text"
                         className="resume-textarea"
+                        disabled={!hasAccountSession || isAnalyzing || isImportingResume}
                       ></textarea>
                       <div className="resume-character-count">{resumeText.length.toLocaleString()} / 20,000 characters</div>
 
                       <div className="resume-actions-bar">
-                        <button type="submit" className="primary-btn glow-btn" disabled={isAnalyzing}>
+                        <button type="submit" className="primary-btn glow-btn" disabled={!hasAccountSession || isAnalyzing || isImportingResume}>
                           {isAnalyzing ? (
                             <>
                               <RefreshCw size={16} className="spin-icon" /> Analyzing...
@@ -728,16 +911,19 @@ export default function Dashboard() {
                           )}
                         </button>
                       </div>
+                      <p className="resume-privacy-note" id="resume-privacy-note">Original files stay in your browser. Pasted or extracted text is sent to the API for analysis but is not saved as text. Your latest 20 results are kept in your account history; you can delete any report, and older reports are pruned when the limit is reached.</p>
                     </form>
+                    {!hasAccountSession && <p className="resume-signin-note">Sign in to analyze a resume and save private reports. <Link to="/login">Sign in</Link></p>}
                     {resumeError && <p className="resume-error" role="alert">{resumeError}</p>}
                   </div>
 
                   {resumeAnalysis && (
                     <div className="resume-analysis-output">
                       <div className="analysis-score-bar">
-                        <span>Role Requirement Mentions · {resumeAnalysis.roleName}</span>
+                        <span>{resumeAnalysis.reportName || 'Resume analysis'} · {resumeAnalysis.roleName}</span>
                         <strong>{resumeAnalysis.matchPercentage}%</strong>
                       </div>
+                      {resumeAnalysis.createdAt && <p className="resume-report-meta">Saved {new Date(resumeAnalysis.createdAt).toLocaleString()} · {resumeAnalysis.sourceType === 'pdf_file' ? 'PDF import' : resumeAnalysis.sourceType === 'text_file' ? 'Text file import' : 'Pasted text'}</p>}
                       <p className="resume-match-summary">{resumeAnalysis.summary.matchedSkillCount} of {resumeAnalysis.summary.requiredSkillCount} role skills mentioned; {resumeAnalysis.summary.missingSkillCount} have no matching keyword evidence.</p>
 
                       <div className="analysis-group">
@@ -775,6 +961,75 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+
+                {hasAccountSession && <section className="resume-history-panel" aria-labelledby="resume-history-title">
+                  <div className="resume-history-header">
+                    <div>
+                      <h3 id="resume-history-title"><History size={18} /> Saved resume analyses</h3>
+                      <p>Your latest 20 reports are private to your account. Remove any report whenever you choose.</p>
+                    </div>
+                    <span className="resume-history-count">{resumeHistory.length} / 20</span>
+                  </div>
+                  {resumeHistoryLoading && <p className="resume-history-status">Loading saved reports…</p>}
+                  {!resumeHistoryLoading && resumeHistory.length === 0 && <p className="resume-history-status">No saved reports yet. Analyze a resume to keep the result here.</p>}
+                  {resumeHistory.length > 0 && <ul className="resume-history-list">
+                    {resumeHistory.map(item => (
+                      <li key={item.id}>
+                        <div className="resume-history-details">
+                          <strong>{item.reportName}</strong>
+                          <span>{item.roleName} · {new Date(item.createdAt).toLocaleString()} · {item.summary?.matchedSkillCount ?? 0}/{item.summary?.requiredSkillCount ?? 0} skills</span>
+                        </div>
+                        <strong className="resume-history-score">{item.matchPercentage}%</strong>
+                        <div className="resume-history-actions">
+                          <button type="button" className="resume-history-view" onClick={() => handleOpenResumeReport(item.id)} disabled={resumeHistoryActionId === item.id}>
+                            {resumeHistoryActionId === item.id ? 'Opening…' : 'View'}
+                          </button>
+                          <button type="button" className="resume-history-delete" onClick={() => handleDeleteResumeReport(item)} disabled={resumeHistoryActionId === item.id} aria-label={`Delete ${item.reportName}`}>
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>}
+                  {resumeHistoryError && <p className="resume-error" role="alert">{resumeHistoryError}</p>}
+
+                  {resumeHistory.length >= 2 && <form className="resume-compare-controls" onSubmit={handleCompareResumeReports}>
+                    <div className="resume-compare-heading"><GitCompare size={17} /><h4>Compare two reports</h4></div>
+                    <label>
+                      Baseline report
+                      <select value={compareFromId} onChange={(e) => { setCompareFromId(e.target.value); setResumeComparison(null); setResumeCompareError(''); }}>
+                        <option value="">Choose a report</option>
+                        {resumeHistory.map(item => <option key={`from-${item.id}`} value={item.id}>{item.reportName} · {item.matchPercentage}%</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      Comparison report
+                      <select value={compareToId} onChange={(e) => { setCompareToId(e.target.value); setResumeComparison(null); setResumeCompareError(''); }}>
+                        <option value="">Choose a report</option>
+                        {resumeHistory.map(item => <option key={`to-${item.id}`} value={item.id}>{item.reportName} · {item.matchPercentage}%</option>)}
+                      </select>
+                    </label>
+                    <button type="submit" className="resume-history-view" disabled={isComparingResumes}>
+                      {isComparingResumes ? 'Comparing…' : 'Compare reports'}
+                    </button>
+                  </form>}
+                  {resumeCompareError && <p className="resume-error" role="alert">{resumeCompareError}</p>}
+                  {resumeComparison && <div className="resume-comparison-result" aria-live="polite">
+                    <div className="resume-comparison-scores">
+                      <p><span>{resumeComparison.from.reportName}</span><strong>{resumeComparison.from.matchPercentage}%</strong></p>
+                      <ArrowRight size={18} />
+                      <p><span>{resumeComparison.to.reportName}</span><strong>{resumeComparison.to.matchPercentage}%</strong></p>
+                      <b className={resumeComparison.to.matchPercentage >= resumeComparison.from.matchPercentage ? 'positive' : 'negative'}>
+                        {resumeComparison.to.matchPercentage - resumeComparison.from.matchPercentage > 0 ? '+' : ''}{resumeComparison.to.matchPercentage - resumeComparison.from.matchPercentage} pts
+                      </b>
+                    </div>
+                    {resumeComparison.from.roleName !== resumeComparison.to.roleName && <p className="resume-role-change">Target role changed from {resumeComparison.from.roleName} to {resumeComparison.to.roleName}; compare the skill lists with that change in mind.</p>}
+                    <div className="resume-comparison-skills">
+                      <div><strong>New evidence in comparison report</strong><span>{comparisonAddedSkills.length ? comparisonAddedSkills.map(skill => skill.skillName).join(', ') : 'No new skill matches.'}</span></div>
+                      <div><strong>Baseline evidence not matched in comparison report</strong><span>{comparisonRemovedSkills.length ? comparisonRemovedSkills.map(skill => skill.skillName).join(', ') : 'No previous matches were lost.'}</span></div>
+                    </div>
+                  </div>}
+                </section>}
               </div>
             )}
           </div>

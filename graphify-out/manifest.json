@@ -1,0 +1,488 @@
+{
+  ".codex/hooks.json": {
+    "mtime": 1793610762.6284163,
+    "seen": 1793610960.681766,
+    "ast_hash": "c175f4a2cba5a6c933e492503e8fcd05",
+    "semantic_hash": ""
+  },
+  "backend/admin-dashboard/dashboard.js": {
+    "mtime": 1791962311.7755713,
+    "seen": 1793610960.6817758,
+    "ast_hash": "2e88b4cc287b28166028ab34b7998a93",
+    "semantic_hash": ""
+  },
+  "backend/db.js": {
+    "mtime": 1791970419.0485032,
+    "seen": 1793610960.681781,
+    "ast_hash": "f22e50fe1120a369d762a5203808526a",
+    "semantic_hash": ""
+  },
+  "backend/lib/readiness.js": {
+    "mtime": 1793015991.9526434,
+    "seen": 1793610960.6817832,
+    "ast_hash": "31ae4a26918a00570d432755dc0bae40",
+    "semantic_hash": ""
+  },
+  "backend/lib/security.js": {
+    "mtime": 1793015991.9532282,
+    "seen": 1793610960.681785,
+    "ast_hash": "f597cb55c0ee062c97dc4d0566b5f78e",
+    "semantic_hash": ""
+  },
+  "backend/middleware/adminMiddleware.js": {
+    "mtime": 1791960066.2355707,
+    "seen": 1793610960.6817868,
+    "ast_hash": "c0e2fd19b43f4ec2776c876fbcbd9472",
+    "semantic_hash": ""
+  },
+  "backend/middleware/authMiddleware.js": {
+    "mtime": 1791961376.5689123,
+    "seen": 1793610960.6817884,
+    "ast_hash": "8e3cd3022d3cf505d2ce9bc320afcabf",
+    "semantic_hash": ""
+  },
+  "backend/package.json": {
+    "mtime": 1793016324.98898,
+    "seen": 1793610960.68179,
+    "ast_hash": "9ef31f17f87494f13bad52e42eceae11",
+    "semantic_hash": ""
+  },
+  "backend/routes/admin.js": {
+    "mtime": 1793618232.2450137,
+    "seen": 1793618407.246861,
+    "ast_hash": "ed40f5211196d1baa47dafd6b3ecff33",
+    "semantic_hash": ""
+  },
+  "backend/routes/ai.js": {
+    "mtime": 1793609391.6316524,
+    "seen": 1793610960.6817932,
+    "ast_hash": "5f1b3af0d9eb4366d9edd7143d5463f9",
+    "semantic_hash": ""
+  },
+  "backend/routes/assessments.js": {
+    "mtime": 1791961376.6049118,
+    "seen": 1793610960.681795,
+    "ast_hash": "d9c83876e2b6d33fee62aed18c8c7d2c",
+    "semantic_hash": ""
+  },
+  "backend/routes/auth.js": {
+    "mtime": 1791974442.064651,
+    "seen": 1793610960.6817966,
+    "ast_hash": "cc67b0f43e6b2338e688144b0822fec8",
+    "semantic_hash": ""
+  },
+  "backend/routes/oauth.js": {
+    "mtime": 1791974110.6015992,
+    "seen": 1793610960.6817982,
+    "ast_hash": "1ca9a9a0cddb6831b3391397c59b7d4c",
+    "semantic_hash": ""
+  },
+  "backend/routes/roadmap.js": {
+    "mtime": 1791978714.5835097,
+    "seen": 1793610960.6817997,
+    "ast_hash": "6a85a0d761e192b7ea51e851824f9c1c",
+    "semantic_hash": ""
+  },
+  "backend/routes/student.js": {
+    "mtime": 1793618337.376827,
+    "seen": 1793618407.2468784,
+    "ast_hash": "56612e2cda997d78943de1efaac69921",
+    "semantic_hash": ""
+  },
+  "backend/server.js": {
+    "mtime": 1793016174.0579362,
+    "seen": 1793610960.6818025,
+    "ast_hash": "8ad4ea034717691ee1d106de7506ae5c",
+    "semantic_hash": ""
+  },
+  "backend/test/contracts.test.js": {
+    "mtime": 1793016960.922664,
+    "seen": 1793610960.6818042,
+    "ast_hash": "552ff36b22d8932fe6a162e5f15a2100",
+    "semantic_hash": ""
+  },
+  "check-db.cjs": {
+    "mtime": 1791961376.1529183,
+    "seen": 1793610960.681806,
+    "ast_hash": "7bcb758a06b17231c51a425195b68dc9",
+    "semantic_hash": ""
+  },
+  "package.json": {
+    "mtime": 1793609528.0452652,
+    "seen": 1793610960.6818132,
+    "ast_hash": "19f911e97207986c39d842c5d8d2710c",
+    "semantic_hash": ""
+  },
+  "render.yaml": {
+    "mtime": 1793016174.0602322,
+    "seen": 1793610960.6818159,
+    "ast_hash": "6aa43fc5dc4f2215631b39a8dbaca4ad",
+    "semantic_hash": ""
+  },
+  "src/App.jsx": {
+    "mtime": 1793619454.110767,
+    "seen": 1793619608.6249084,
+    "ast_hash": "1cbb225ae0a3264425ea2d83859c0c89",
+    "semantic_hash": ""
+  },
+  "src/components/AnimatedSection.jsx": {
+    "mtime": 1791961376.4329143,
+    "seen": 1793610960.6818192,
+    "ast_hash": "e121e6c40d0c96b7c90d977a4995a354",
+    "semantic_hash": ""
+  },
+  "src/components/AssessmentsPanel.jsx": {
+    "mtime": 1791961376.4159145,
+    "seen": 1793610960.6818209,
+    "ast_hash": "a48d52ba967845a4fa97e8c09c74f8e5",
+    "semantic_hash": ""
+  },
+  "src/components/CountUp.jsx": {
+    "mtime": 1791961376.4049146,
+    "seen": 1793610960.6818225,
+    "ast_hash": "9f7d74c4def77d7921e44fea9311c1a4",
+    "semantic_hash": ""
+  },
+  "src/components/FeatureCard.jsx": {
+    "mtime": 1791961376.4479141,
+    "seen": 1793610960.681824,
+    "ast_hash": "132cc41a793f9481e23810d04871f45e",
+    "semantic_hash": ""
+  },
+  "src/components/Footer.jsx": {
+    "mtime": 1791961376.4759135,
+    "seen": 1793610960.6818256,
+    "ast_hash": "952754168ce7f1d57bd34f7dbfc1d1a4",
+    "semantic_hash": ""
+  },
+  "src/components/Navbar.jsx": {
+    "mtime": 1793619454.1807683,
+    "seen": 1793619608.6249266,
+    "ast_hash": "181242bf7dd06915cacb6c22eb7c4d2a",
+    "semantic_hash": ""
+  },
+  "src/components/OAuthButtons.jsx": {
+    "mtime": 1791972928.246009,
+    "seen": 1793610960.6818285,
+    "ast_hash": "6740a43162c551a3ba34a07be0bfe2a8",
+    "semantic_hash": ""
+  },
+  "src/components/ParticleBackground.jsx": {
+    "mtime": 1793617564.5295491,
+    "seen": 1793617602.948943,
+    "ast_hash": "350aba7b275233ae011b4712c6af3bc5",
+    "semantic_hash": ""
+  },
+  "src/components/TestimonialCard.jsx": {
+    "mtime": 1791961376.511913,
+    "seen": 1793610960.6818314,
+    "ast_hash": "cdc5f63c3b0ada77ae2eeb67b66e7d79",
+    "semantic_hash": ""
+  },
+  "src/context/AuthContext.jsx": {
+    "mtime": 1793016107.085744,
+    "seen": 1793610960.6818328,
+    "ast_hash": "4d31d4aaaab256fa2940a5cfac9df65e",
+    "semantic_hash": ""
+  },
+  "src/hooks/useInView.js": {
+    "mtime": 1791961376.4659138,
+    "seen": 1793610960.681834,
+    "ast_hash": "8fbb96e3045e83d08ed4d012bc19d209",
+    "semantic_hash": ""
+  },
+  "src/main.jsx": {
+    "mtime": 1793017498.358673,
+    "seen": 1793610960.6818354,
+    "ast_hash": "f86a3aa0d782d67b51b79091f4f5e0e9",
+    "semantic_hash": ""
+  },
+  "src/pages/Dashboard.jsx": {
+    "mtime": 1793619437.7084327,
+    "seen": 1793619608.6249526,
+    "ast_hash": "ebaa895370e4f05c3d32d3ea1030444b",
+    "semantic_hash": ""
+  },
+  "src/pages/Home.jsx": {
+    "mtime": 1793037800.4597301,
+    "seen": 1793610960.6818383,
+    "ast_hash": "b4e6aa2cc00781a9309f9e4fedeb0545",
+    "semantic_hash": ""
+  },
+  "src/pages/Login.jsx": {
+    "mtime": 1793017522.087485,
+    "seen": 1793610960.6818397,
+    "ast_hash": "7c437fa144ac2db8f59739bc40ff8b12",
+    "semantic_hash": ""
+  },
+  "src/pages/OAuthCallback.jsx": {
+    "mtime": 1791973784.0674634,
+    "seen": 1793610960.6818414,
+    "ast_hash": "80dcb6c5e55ab93760e61225c49eafe7",
+    "semantic_hash": ""
+  },
+  "src/pages/Onboarding.jsx": {
+    "mtime": 1793016859.3472137,
+    "seen": 1793610960.6818433,
+    "ast_hash": "1e1279bf1e21cbf8ebb42bc035265d65",
+    "semantic_hash": ""
+  },
+  "src/pages/Signup.jsx": {
+    "mtime": 1793017522.087485,
+    "seen": 1793610960.6818447,
+    "ast_hash": "c532ee2b2dfa37b827633422b4e5decb",
+    "semantic_hash": ""
+  },
+  "src/services/api.js": {
+    "mtime": 1793618232.310012,
+    "seen": 1793618407.2469578,
+    "ast_hash": "c81cd36324d06f760313c924507f1f27",
+    "semantic_hash": ""
+  },
+  "src/services/resumeImport.js": {
+    "mtime": 1793609290.8093107,
+    "seen": 1793610960.6818478,
+    "ast_hash": "f9e61d0d2b8614408c2c7d93e64eea51",
+    "semantic_hash": ""
+  },
+  "vercel.json": {
+    "mtime": 1791970215.0730286,
+    "seen": 1793610960.681849,
+    "ast_hash": "925b8da8582348fdca9058add24c3606",
+    "semantic_hash": ""
+  },
+  "vite.config.js": {
+    "mtime": 1791960066.240412,
+    "seen": 1793610960.6818507,
+    "ast_hash": "56a73a6bf6e79d8cb8867681496d52df",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1793610762.6281176,
+    "seen": 1793610960.6818533,
+    "ast_hash": "f36539ecc9af68f33ebd72770ce4a19e",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1793619525.5126088,
+    "seen": 1793619608.6249797,
+    "ast_hash": "ea737f256963b038b87bf449543e1b82",
+    "semantic_hash": ""
+  },
+  "backend/admin-dashboard/index.html": {
+    "mtime": 1793037731.8131533,
+    "seen": 1793610960.681856,
+    "ast_hash": "11c321040a6613d7e761da5908a8af40",
+    "semantic_hash": ""
+  },
+  "docs/database-erd.md": {
+    "mtime": 1793618305.1123216,
+    "seen": 1793618407.246979,
+    "ast_hash": "2f50cf5de4d32522a5ba8db431716acc",
+    "semantic_hash": ""
+  },
+  "docs/phases-1-12-status.md": {
+    "mtime": 1793619525.5836115,
+    "seen": 1793619608.6249864,
+    "ast_hash": "f70a4ab1086702690ad78e245c203e1c",
+    "semantic_hash": ""
+  },
+  "index.html": {
+    "mtime": 1791961376.302916,
+    "seen": 1793610960.6818604,
+    "ast_hash": "370a5147841e41d6bebd8fb6828f1592",
+    "semantic_hash": ""
+  },
+  "project-audit/AUDIT_SUMMARY.md": {
+    "mtime": 1793619638.691298,
+    "seen": 1793619665.7903714,
+    "ast_hash": "26f8b6c6de92a5116ba893c41218e82c",
+    "semantic_hash": ""
+  },
+  "project-audit/BUGS_AND_BLOCKERS.md": {
+    "mtime": 1793618435.238334,
+    "seen": 1793618869.4931438,
+    "ast_hash": "9e4cb6e346fe0d1f730a8e088d4dc31e",
+    "semantic_hash": ""
+  },
+  "project-audit/CHANGELOG.md": {
+    "mtime": 1793619638.9012966,
+    "seen": 1793619665.7903771,
+    "ast_hash": "513dbe6ee10b9ed5f48d5962a35f3376",
+    "semantic_hash": ""
+  },
+  "project-audit/FILE_BY_FILE_AUDIT.md": {
+    "mtime": 1793618498.0591974,
+    "seen": 1793618869.493151,
+    "ast_hash": "7abad23e0b4b8ae3581b3cf54357fd0a",
+    "semantic_hash": ""
+  },
+  "project-audit/NEXT_AGENT_TASKS.md": {
+    "mtime": 1793618369.656334,
+    "seen": 1793618407.2470007,
+    "ast_hash": "3aaf43570977ebf0f5ff125bcfc191ad",
+    "semantic_hash": ""
+  },
+  "project-audit/PHASE-15-HANDOFF.md": {
+    "mtime": 1793609625.768407,
+    "seen": 1793610960.6818688,
+    "ast_hash": "69396a62489b395c02bc29d5e3404413",
+    "semantic_hash": ""
+  },
+  "project-audit/PROJECT_FILE_MAP.md": {
+    "mtime": 1793618498.1381958,
+    "seen": 1793618869.4931707,
+    "ast_hash": "c6be1052a8125965cf66cdd88fbdea3e",
+    "semantic_hash": ""
+  },
+  "project-audit/PROJECT_STATUS_AND_HANDOVER.md": {
+    "mtime": 1793619638.6202984,
+    "seen": 1793619665.7903988,
+    "ast_hash": "f783b7c86157484ca7589dc2b99922b6",
+    "semantic_hash": ""
+  },
+  "project-audit/REQUIREMENTS_TRACEABILITY.md": {
+    "mtime": 1793618381.3341558,
+    "seen": 1793618407.2470195,
+    "ast_hash": "598212ddedd5bdc8c3bd65da25ccc904",
+    "semantic_hash": ""
+  },
+  "project-audit/PHASE-16-HANDOFF.md": {
+    "mtime": 1793617622.1831474,
+    "seen": 1793618000.182595,
+    "ast_hash": "e1689d0ccd4c648b2e72f6743ab93171",
+    "semantic_hash": ""
+  },
+  "backend/migrations/001_student_readiness.sql": {
+    "mtime": 1793016145.1741743,
+    "seen": 1793618034.6766498,
+    "ast_hash": "24696b04c385a53c9c9f27b5f9e9f1c7",
+    "semantic_hash": ""
+  },
+  "backend/migrations/002_assessments.sql": {
+    "mtime": 1791961376.588912,
+    "seen": 1793618034.6766531,
+    "ast_hash": "debb926181ac6ce783b4fae1f7fe3156",
+    "semantic_hash": ""
+  },
+  "backend/migrations/003_personalized_roadmaps.sql": {
+    "mtime": 1791970426.1140664,
+    "seen": 1793618034.676655,
+    "ast_hash": "7c5154a8cd85fc2c65da986008090b7e",
+    "semantic_hash": ""
+  },
+  "backend/migrations/004_resume_analysis.sql": {
+    "mtime": 1791970426.1890619,
+    "seen": 1793618034.6766567,
+    "ast_hash": "81cfb494e16cd44e15357a74c4fb5d46",
+    "semantic_hash": ""
+  },
+  "backend/migrations/005_admin_access.sql": {
+    "mtime": 1791970426.2770562,
+    "seen": 1793618034.6766586,
+    "ast_hash": "dacc0f12d08016d06cc38d3b0d54c2c1",
+    "semantic_hash": ""
+  },
+  "backend/migrations/006_admin_audit_log.sql": {
+    "mtime": 1791970426.367051,
+    "seen": 1793618034.6766603,
+    "ast_hash": "b8172d1fcffde84b3f246a4f13d12bf8",
+    "semantic_hash": ""
+  },
+  "backend/migrations/007_oauth_login.sql": {
+    "mtime": 1791972615.9149423,
+    "seen": 1793618034.6766617,
+    "ast_hash": "d0298bd2fa48386478326bb0249ea563",
+    "semantic_hash": ""
+  },
+  "backend/migrations/008_student_onboarding.sql": {
+    "mtime": 1791974089.5699124,
+    "seen": 1793618034.676663,
+    "ast_hash": "6ffcb538cb40fdf692b9b126006c7606",
+    "semantic_hash": ""
+  },
+  "backend/migrations/009_role_based_skill_catalog.sql": {
+    "mtime": 1791978888.0070314,
+    "seen": 1793618034.6766646,
+    "ast_hash": "ba2ed6742b37b0edf7f985cfef87fc41",
+    "semantic_hash": ""
+  },
+  "backend/migrations/010_cgpa_precision.sql": {
+    "mtime": 1793016145.1741743,
+    "seen": 1793618034.6766663,
+    "ast_hash": "4dcb6ce05dbb188b1ec6b187e0a1f416",
+    "semantic_hash": ""
+  },
+  "backend/migrations/011_resume_analysis_history.sql": {
+    "mtime": 1793609304.7005334,
+    "seen": 1793618034.6766677,
+    "ast_hash": "cc98976735a9b0fd3522b8c49a9ca0e5",
+    "semantic_hash": ""
+  },
+  "backend/schema.sql": {
+    "mtime": 1793618220.6553285,
+    "seen": 1793618407.2468817,
+    "ast_hash": "99fe7baae5e2c9c0f8fffd59a1425a90",
+    "semantic_hash": ""
+  },
+  "backend/migrations/012_saved_career_roles.sql": {
+    "mtime": 1793618220.7203267,
+    "seen": 1793618407.2468524,
+    "ast_hash": "75b409a54f1ed1c7e15687b10350da8d",
+    "semantic_hash": ""
+  },
+  "src/components/CareerPathsPanel.jsx": {
+    "mtime": 1793618267.1880648,
+    "seen": 1793618407.2469077,
+    "ast_hash": "19f37fd3d19d61ce8fa91b603e0e871c",
+    "semantic_hash": ""
+  },
+  "project-audit/PHASE-17-HANDOFF.md": {
+    "mtime": 1793618434.9533381,
+    "seen": 1793618869.4931633,
+    "ast_hash": "24c599c141e5aad6b89f511bb2b461f2",
+    "semantic_hash": ""
+  },
+  "project-audit/PHASE-18-HANDOFF.md": {
+    "mtime": 1793619638.7662973,
+    "seen": 1793619665.7903914,
+    "ast_hash": "474b8593e8aa4538773db5d21e0355ff",
+    "semantic_hash": ""
+  },
+  "src/components/RoleRoadmapExplorer.jsx": {
+    "mtime": 1793619434.5844667,
+    "seen": 1793619608.6249344,
+    "ast_hash": "efee4af2b38c51f4915f275201ba70b8",
+    "semantic_hash": ""
+  },
+  "src/context/ThemeContext.jsx": {
+    "mtime": 1793619454.0427656,
+    "seen": 1793619608.6249423,
+    "ast_hash": "f93723f66c5f0fb5b855bb6a1cad88fb",
+    "semantic_hash": ""
+  },
+  "src/data/roleRoadmaps.js": {
+    "mtime": 1793619434.4984686,
+    "seen": 1793619608.624945,
+    "ast_hash": "90b5f0da9b16d1e53b566c5ce2dc43c8",
+    "semantic_hash": ""
+  },
+  "project-audit/PHASE-19-HANDOFF.md": {
+    "mtime": 1793619638.833297,
+    "seen": 1793619665.7903936,
+    "ast_hash": "5149965d590d1b478f4ab116430c38dd",
+    "semantic_hash": ""
+  },
+  "backend/package-lock.json": {
+    "mtime": 1793016307.7487352,
+    "seen": 1793610960.681875,
+    "ast_hash": "1824a6acfa7c67d0b2636710d2d8ebca",
+    "semantic_hash": ""
+  },
+  "package-lock.json": {
+    "mtime": 1793609528.1232703,
+    "seen": 1793610960.6818764,
+    "ast_hash": "348f1d4a9edbdc33724883d3bd18ee04",
+    "semantic_hash": ""
+  }
+}

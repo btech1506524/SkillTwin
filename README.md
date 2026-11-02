@@ -1,10 +1,10 @@
 # SkillTwin AI
 
-SkillTwin is a career-readiness dashboard for engineering students. It includes a React/Vite client and an Express API backed by MySQL. The dashboard tracks skills, target roles and roadmap milestones, provides deterministic career scenario projections, and compares resume keyword evidence with role requirements (not an external generative AI service).
+SkillTwin is a career-readiness dashboard for engineering students. It includes a React/Vite client and an Express API backed by MySQL. The dashboard tracks skills, target roles and roadmap milestones, compares fit across career paths, provides deterministic career scenario projections, and compares resume keyword evidence with role requirements (not an external generative AI service).
 
 ## Requirements
 
-- Node.js 22 or newer (Node 22–24 supported)
+- Node.js 22.13 or newer (Node 22.13–24 supported)
 - MySQL 8 (for persistent accounts)
 
 ## Start the app
@@ -16,7 +16,7 @@ SkillTwin is a career-readiness dashboard for engineering students. It includes 
    npm --prefix backend install
    ```
 
-2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). For an existing database, select the target schema and apply unapplied migrations in order through `010_cgpa_precision.sql` (for example, `mysql -u root -p skilltwin < backend/migrations/010_cgpa_precision.sql`). Migration files do not select a schema for you. Migration 009 adds the role-aware categorized skill catalog and migration 010 widens CGPA storage to include 10.00 without dropping student data. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
+2. For a new database, create the database and tables using `backend/schema.sql` (for example, `mysql -u root -p < backend/schema.sql`). For an existing database, select the target schema and apply unapplied migrations in order through `012_saved_career_roles.sql` (for example, `mysql -u root -p skilltwin < backend/migrations/012_saved_career_roles.sql`). Migration files do not select a schema for you. Migration 009 adds the role-aware categorized skill catalog, migration 010 widens CGPA storage to include 10.00 without dropping student data, migration 011 adds private resume-analysis history, and migration 012 adds an account-owned career shortlist. Avoid rerunning the full schema seed script on an existing database because it refreshes the built-in role-to-skill mappings.
 
 3. Copy `backend/.env.example` to `backend/.env` and set the MySQL password and a private, random `JWT_SECRET` (at least 32 characters for production).
 
@@ -40,8 +40,10 @@ Choose **Instant Demo Access** on Login or Signup, or use the home page demo act
 - `GET /api/student/profile`, `GET|PUT /api/student/skills`
 - `GET /api/student/onboarding` returns the authenticated profile, saved skills, and role list; `GET /api/student/onboarding/skills?roleId=...` returns that role's categorized required and optional skills; `PUT /api/student/onboarding` saves the role, profile, and selected proficiency levels.
 - `GET|PUT /api/student/target-role`, `GET /api/student/gaps`, `GET /api/student/readiness`
+- `GET /api/student/career-paths`, `POST /api/student/saved-career-roles`, `DELETE /api/student/saved-career-roles/:roleId`
 - `GET|PUT /api/student/milestones`
 - `POST /api/ai/simulate`, `POST /api/ai/analyze-resume`
+- `GET /api/ai/resume-analyses`, `GET /api/ai/resume-analyses/:analysisId`, `DELETE /api/ai/resume-analyses/:analysisId`
 - `GET /api/assessments`, `GET /api/assessments/:assessmentId`
 - `POST /api/assessments/:assessmentId/submit`, `GET /api/assessments/results`, `GET /api/assessments/results/:resultId`
 - `GET /api/roadmap`, `GET /api/roadmap/progress`, `POST /api/roadmap/generate`, `PUT /api/roadmap/milestones/:milestoneId`
@@ -56,7 +58,7 @@ The backend serves the interactive admin dashboard at `https://<backend-host>/ad
 UPDATE users SET account_role = 'admin' WHERE email = 'admin@example.com';
 ```
 
-The API checks the current role in MySQL on each admin request. Admins can search and inspect profiles, export filtered user lists to CSV, view registration/readiness analytics and an audit trail of admin sign-ins and account-role changes, view skills, roadmap history, milestones and assessment attempts, change other accounts between student/admin, and browse paginated records in the configured SkillTwin database. Table browsing is read-only; password hashes, OAuth state/nonces/verifiers/hashes, and fields matching secret, token, API-key, credential, salt, private-key, and resume-text names are excluded. Arbitrary SQL and other MySQL schemas are not exposed. At least one admin account must remain; an admin cannot change their own role. Locally, open `http://localhost:5001/admin` or `http://localhost:5173/admin`.
+The API checks the current role in MySQL on each admin request. Admins can search and inspect profiles, export filtered user lists to CSV, view registration/readiness analytics and an audit trail of admin sign-ins and account-role changes, view skills, roadmap history, milestones and assessment attempts, change other accounts between student/admin, and browse paginated records in the configured SkillTwin database. Table browsing is read-only; password hashes, OAuth state/nonces/verifiers/hashes, the private `resume_analyses` and `saved_career_roles` tables, and fields matching secret, token, API-key, credential, salt, private-key, and resume-text names are excluded. Arbitrary SQL and other MySQL schemas are not exposed. At least one admin account must remain; an admin cannot change their own role. Locally, open `http://localhost:5001/admin` or `http://localhost:5173/admin`.
 
 ## Separate frontend and backend
 
@@ -66,7 +68,7 @@ Password recovery is not currently configured. The login screen labels this hone
 
 ## Project progress
 
-The implementation and historical local verification status for Phases 1–12 is tracked in [`docs/phases-1-12-status.md`](docs/phases-1-12-status.md); current audit evidence is in [`project-audit/PROJECT_STATUS_AND_HANDOVER.md`](project-audit/PROJECT_STATUS_AND_HANDOVER.md). The database relationships are documented in [`docs/database-erd.md`](docs/database-erd.md). These documents distinguish source evidence from production deployment, which remains unverified.
+The implementation and historical local verification status for Phases 1–19 is tracked in [`docs/phases-1-12-status.md`](docs/phases-1-12-status.md); current audit evidence is in [`project-audit/PROJECT_STATUS_AND_HANDOVER.md`](project-audit/PROJECT_STATUS_AND_HANDOVER.md). The database relationships are documented in [`docs/database-erd.md`](docs/database-erd.md). These documents distinguish source evidence from production deployment, which remains unverified.
 
 ### Phase 10 — Assessments (implemented)
 
@@ -113,9 +115,34 @@ Phase 12 uses the Phase 11 `roadmap_milestones` table and adds no additional dat
 - The admin overview shows student sign-up trends, readiness bands, and popular role choices. Admin sign-ins and account-role changes are recorded in `admin_audit_log` and shown in the activity view.
 - Admins can export a filtered account list to CSV. Spreadsheet formula prefixes are escaped in exported cells.
 
-### Next suggested phase — Phase 15: Resume import and analysis history
+### Phase 15 — Resume import and analysis history (implemented)
 
-Add safe PDF/text resume import and let students save, compare, and remove their own prior analysis reports.
+- Imports UTF-8 `.txt` files (up to 1 MB) and text-based PDF files (up to 5 MB and 10 pages) in the browser, with extracted text limited to 20,000 characters. Scanned-image PDFs and OCR are not supported.
+- The original file stays in the browser. Extracted text is sent to the analyzer for the request, but is not stored in the database or written to application logs.
+- Saves only the deterministic analysis result, role, source type, user-selected report name, and timestamp. Each account keeps its latest 20 reports; older reports are pruned automatically. Students can open, compare, and delete their own reports. Deleting an account cascades its reports.
+- Existing databases must apply migration `011_resume_analysis_history.sql`; fresh installs receive the table from `backend/schema.sql`.
+- The history table does not contain uploaded files or source resume text. Treat saved match reports as personal data; keep access behind the authenticated account and delete reports the student no longer wants retained.
+
+### Phase 16 — Motion-aware shared background (implemented)
+
+- The decorative particle background shows a still scene when reduced motion is preferred and animates normally otherwise. Preference changes take effect immediately.
+- Animation pauses while the page is hidden and resumes when visible. The canvas is hidden from assistive technology and keyboard focus.
+
+### Phase 17 — Career path shortlist (implemented in source; MySQL/browser verification pending)
+
+- Compares each configured career role against the student's saved skill ratings using the existing required-skill readiness formula.
+- Shows each role's skill-fit estimate, required skills met, and highest-priority gaps. Students can save and remove roles from a private shortlist without changing their current target role or skill profile.
+- Existing databases apply migration `012_saved_career_roles.sql`; fresh databases receive the account-owned table from `backend/schema.sql`. Duplicate saves are prevented, account/role deletions cascade, and the admin table browser excludes shortlist rows.
+
+### Phase 18 — In-app role roadmaps (implemented in source)
+
+- The dashboard includes original, SkillTwin-hosted 12-week learning paths for Software Developer, Frontend Developer, Backend Developer, Full Stack Developer, Data Analyst, and AI / ML Engineer.
+- Students can preview a different role without changing their profile target or the saved personalized milestone plan.
+
+### Phase 19 — Dark mode (implemented in source)
+
+- A global navbar control switches the app between light and dark themes. The selected theme is saved in browser storage and restored on the next visit.
+- The system color palette covers the home, sign-in, onboarding, dashboard, roadmap, and shared navigation surfaces.
 
 ## Project audit — 2026-10-26
 
@@ -148,7 +175,7 @@ Apply schema/migrations before deploying. Keep MySQL on a private network where 
 
 ### Vercel frontend
 
-Use the repository root as the project root, `npm ci` as the install command, `npm run build` as the build command, and `dist` as the output directory. Node.js 22–24 is supported. `vercel.json` proxies `/api/*` to `https://skilltwin-l25l.onrender.com`; update that rewrite if the Render domain changes. `VITE_API_BASE_URL` and `VITE_ADMIN_URL` can override the defaults when using a different deployment.
+Use the repository root as the project root, `npm ci` as the install command, `npm run build` as the build command, and `dist` as the output directory. Node.js 22.13–24 is supported. `vercel.json` proxies `/api/*` to `https://skilltwin-l25l.onrender.com`; update that rewrite if the Render domain changes. `VITE_API_BASE_URL` and `VITE_ADMIN_URL` can override the defaults when using a different deployment.
 
 ### Render backend
 

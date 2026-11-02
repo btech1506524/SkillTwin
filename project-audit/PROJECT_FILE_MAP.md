@@ -1,6 +1,6 @@
 # SkillTwin project file map
 
-**Updated:** 26 October 2026
+**Updated:** 2 November 2026
 
 ## Runtime architecture
 
@@ -24,18 +24,19 @@ Express 5 API
 |---|---|---|
 | Frontend routes | `src/App.jsx`, `src/pages/*.jsx` | Guards account/onboarding routes; Signup passes a role hint to validated onboarding. |
 | Auth/demo state | `src/context/AuthContext.jsx` | JWT account storage, refresh, skill/roadmap updates, dedicated demo localStorage and coherent role samples. |
-| Dashboard | `src/pages/Dashboard.jsx`, `src/components/AssessmentsPanel.jsx` | Skills, roadmap, assessments, deterministic simulator, pasted-text resume evidence. Demo roadmap comes from the selected demo profile. |
-| API client | `src/services/api.js` | Axios calls and bearer header for authenticated account sessions. |
+| Dashboard | `src/pages/Dashboard.jsx`, `src/components/AssessmentsPanel.jsx`, `src/components/CareerPathsPanel.jsx` | Skills, role comparison/shortlist, roadmap, assessments, deterministic simulator, and resume import/history/compare. Demo roadmap comes from the selected demo profile. |
+| Resume import | `src/services/resumeImport.js` | Browser-local UTF-8 text/PDF extraction and file/page/text limits. Original files are not uploaded. |
+| API client | `src/services/api.js` | Axios calls, bearer header, and authenticated career-path and resume-history methods. |
 | API process | `backend/server.js` | Express app, proxy-hop configuration, 10/5 auth limits, CORS, parser/errors, health, shutdown. Exports `app` for tests and starts only as the main module. |
 | Auth/security | `backend/routes/auth.js`, `backend/routes/oauth.js`, `backend/middleware/*.js`, `backend/lib/security.js` | Registration/login/profile, OAuth, JWT/admin checks, sensitive admin-column filtering. |
-| Readiness/simulation | `backend/routes/student.js`, `backend/routes/ai.js`, `backend/lib/readiness.js` | Required-skill-only capped readiness shared by primary and legacy simulation paths. |
+| Readiness/career paths/simulation/resume | `backend/routes/student.js`, `backend/routes/ai.js`, `backend/lib/readiness.js` | Required-skill-only readiness, career-path comparison and shortlist ownership, deterministic resume match, and owner-filtered analysis history with 20-item retention. |
 | Assessments/roadmap | `backend/routes/assessments.js`, `backend/routes/roadmap.js` | Server grading, saved results, owned roadmap snapshots and milestone updates. |
 | Admin | `backend/routes/admin.js`, `backend/admin-dashboard/` | Admin analytics, account management, CSV, read-only filtered table browser. |
 | Tests | `backend/test/contracts.test.js` | Native Node tests for public auth rejection, authz, readiness, filtering, ownership SQL boundaries, answer secrecy, and schema parity. |
 
 ## Database and deployment
 
-`backend/schema.sql` defines the current 16-table source schema. Migrations 001–010 are forward upgrades; 007 adds OAuth tables, 008 onboarding state, 009 the categorized role catalog, and 010 CGPA precision. `docs/database-erd.md` is reconciled to this source. `vercel.json` hosts the frontend/rewrite; `render.yaml` hosts the API and points to Railway MySQL with TLS. Hosted topology and actual schema state remain unverified.
+`backend/schema.sql` defines the current 18-table source schema. Migrations 001–012 are forward upgrades; 007 adds OAuth tables, 008 onboarding state, 009 the categorized role catalog, 010 CGPA precision, 011 resume-analysis history, and 012 saved career paths. `docs/database-erd.md` is reconciled to this source. `vercel.json` hosts the frontend/rewrite; `render.yaml` hosts the API and points to Railway MySQL with TLS. Hosted topology and actual schema state remain unverified.
 
 ## Safety boundaries
 

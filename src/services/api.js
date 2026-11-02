@@ -158,6 +158,33 @@ export const apiService = {
     }
   },
 
+  getCareerPaths: async () => {
+    try {
+      const response = await apiClient.get('/student/career-paths');
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to compare career paths.' };
+    }
+  },
+
+  saveCareerPath: async (roleId) => {
+    try {
+      const response = await apiClient.post('/student/saved-career-roles', { roleId });
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to save this career path.' };
+    }
+  },
+
+  removeCareerPath: async (roleId) => {
+    try {
+      const response = await apiClient.delete(`/student/saved-career-roles/${roleId}`);
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to remove this career path.' };
+    }
+  },
+
   updateSkillLevel: async (skillName, currentLevel) => {
     try {
       const response = await apiClient.put('/student/skills', { skillName, currentLevel });
@@ -195,12 +222,39 @@ export const apiService = {
     }
   },
 
-  scanResumeText: async (resumeText) => {
+  scanResumeText: async (resumeText, { sourceType = 'pasted_text', reportName = '' } = {}) => {
     try {
-      const response = await apiClient.post('/ai/analyze-resume', { resumeText });
+      const response = await apiClient.post('/ai/analyze-resume', { resumeText, sourceType, reportName });
       return response.data;
     } catch (err) {
       return { success: false, message: err.response?.data?.message || 'Unable to analyze this resume right now.' };
+    }
+  },
+
+  getResumeAnalyses: async () => {
+    try {
+      const response = await apiClient.get('/ai/resume-analyses');
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load resume history.' };
+    }
+  },
+
+  getResumeAnalysis: async (analysisId) => {
+    try {
+      const response = await apiClient.get(`/ai/resume-analyses/${analysisId}`);
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to load this resume report.' };
+    }
+  },
+
+  deleteResumeAnalysis: async (analysisId) => {
+    try {
+      const response = await apiClient.delete(`/ai/resume-analyses/${analysisId}`);
+      return response.data;
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || 'Unable to remove this resume report.' };
     }
   },
 

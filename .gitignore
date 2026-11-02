@@ -58,5 +58,9 @@ desktop.ini
 coverage/
 .nyc_output/
 
+# Graphify source indexes are shared; machine-local extraction and signature state is not
+graphify-out/cache/
+graphify-out/.graphify_*
+
 # Optional: npm package lock files (uncomment if you don't track locks)
 # package-lock.json
